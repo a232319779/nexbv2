@@ -6,7 +6,7 @@
 
 二维码：
 
-![qrcode](./qrcode.jpeg)
+![qrcode](https://github.com/a232319779/nexbv2/blob/main/qrcode.jpeg)
 
 ## 安装命令
 
@@ -71,12 +71,12 @@ pip install nextbv2
 
 ## 数据流程图
 
-![](./docs/%E6%95%B0%E6%8D%AE%E6%B5%81%E7%A8%8B%E5%9B%BE.png)
+![](https://github.com/a232319779/nexbv2/blob/main/docs/%E6%95%B0%E6%8D%AE%E6%B5%81%E7%A8%8B%E5%9B%BE.png)
 
 ## 设计思路图
 
-![](./docs/%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF%E5%9B%BE.png)
+![](https://github.com/a232319779/nexbv2/blob/main/docs/%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF%E5%9B%BE.png)
 
 ## 模块关系图
 
-![](./docs/%E6%A8%A1%E5%9D%97%E5%85%B3%E7%B3%BB%E5%9B%BE.png)
+![](https://github.com/a232319779/nexbv2/blob/main/docs/%E6%A8%A1%E5%9D%97%E5%85%B3%E7%B3%BB%E5%9B%BE.png)
