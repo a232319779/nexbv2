@@ -19,7 +19,10 @@ class TestNextBV2():
         nb = NextBBiance(api_key, api_secret, proxies)
         balance = nb.get_asset_balance()
         price = nb.get_symbol_ticker("BNBUSDT")
+        klines = nb.get_klines("BNBUSDT", "1h", limit=2)
         assert 'asset' in balance.keys()
         assert 'price' in price.keys()
+        assert len(klines) > 0
         print(json.dumps(balance, indent=4))
         print(json.dumps(price, indent=4))
+        print(json.dumps(klines, indent=4))

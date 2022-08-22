@@ -25,7 +25,7 @@ from binance.client import Client
 
 
 class NextBBiance(object):
-    def __init__(self, api_key, api_secret, proxies=None):
+    def __init__(self, api_key, api_secret, proxies={}):
         """
         初始化币安API对象
         """
@@ -68,9 +68,7 @@ class NextBBiance(object):
         """
         return self.client.get_symbol_info(symbol=symbol)
 
-    def get_klines(
-        self, symbol, quoteAsset="USDT", interval=Client.KLINE_INTERVAL_1HOUR, limit=500
-    ):
+    def get_klines(self, symbol, interval=Client.KLINE_INTERVAL_1HOUR, limit=500):
         """
         从币安API接口，返回指定币种的K线图
         返回值格式：
@@ -91,19 +89,7 @@ class NextBBiance(object):
             ]
         ]
         """
-        data = None
-        # 处理支持现货交易的币种
-        if symbol.get("status", "") == "TRADING" and "SPOT" in symbol.get(
-            "permissions", []
-        ):
-            # 默认处理USDT交易对
-            if symbol.get("quoteAsset", "") == quoteAsset:
-                symbol_name = symbol.get("symbol", "")
-                data = self.client.get_klines(
-                    symbol=symbol_name, interval=interval, limit=limit
-                )
-
-        return data
+        return self.client.get_klines(symbol=symbol, interval=interval, limit=limit)
 
     def get_asset_balance(self, symbol="USDT"):
         """
