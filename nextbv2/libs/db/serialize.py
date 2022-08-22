@@ -91,6 +91,8 @@ class NextBSerialize(object):
             if time_hour == len(datas):
                 self.datas[symbol]["update_time"] = now_time.strftime("%Y-%m-%d %H:00:00")
                 self.datas[symbol]["data"].extend(datas)
+            else:
+                return False
         else:
             self.datas[symbol] = dict()
             self.datas[symbol]["update_time"] = now_time.strftime("%Y-%m-%d %H:00:00")
