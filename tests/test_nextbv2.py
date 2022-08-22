@@ -13,17 +13,19 @@ from nextbv2.configs.binance_config import BINANCE_CONFIG
 from nextbv2.configs.db_config import DB_CONFIG
 from nextbv2.libs.binance.apis import NextBBiance
 from nextbv2.libs.db.serialize import NextBSerialize
+from nextbv2.libs.cli.cli import NextBV2CLI
 
 
 class TestNextBV2:
     def test_binance(self):
+        # 初始化币安API对象
         api_key = BINANCE_CONFIG.get("api_key")
         api_secret = BINANCE_CONFIG.get("api_secret")
         proxies = BINANCE_CONFIG.get("proxies")
-        nb = NextBBiance(api_key, api_secret, proxies)
-        balance = nb.get_asset_balance()
-        price = nb.get_symbol_ticker("BNBUSDT")
-        klines = nb.get_klines("BNBUSDT", "1h", limit=2)
+        nbb = NextBBiance(api_key, api_secret, proxies)
+        balance = nbb.get_asset_balance()
+        price = nbb.get_symbol_ticker("BNBUSDT")
+        klines = nbb.get_klines("BNBUSDT", "1h", limit=2)
         assert "asset" in balance.keys()
         assert "price" in price.keys()
         assert len(klines) > 0
@@ -62,6 +64,7 @@ class TestNextBV2:
                 "0",
             ],
         ]
+        # 初始化序列化对象
         data_path = DB_CONFIG.get("data_path")
         dir_path = os.path.dirname(data_path)
         if not os.path.exists(dir_path):
@@ -70,3 +73,20 @@ class TestNextBV2:
         nbs.update_datas("BNBUSDT", data)
         assert nbs.dump_datas()
         assert nbs.load_datas()
+
+    def test_cli(self):
+        # 初始化币安API对象
+        api_key = BINANCE_CONFIG.get("api_key")
+        api_secret = BINANCE_CONFIG.get("api_secret")
+        proxies = BINANCE_CONFIG.get("proxies")
+        nbb = NextBBiance(api_key, api_secret, proxies)
+        # 初始化序列化对象
+        data_path = DB_CONFIG.get("data_path")
+        dir_path = os.path.dirname(data_path)
+        if not os.path.exists(dir_path):
+            os.mkdir(dir_path)
+        nbs = NextBSerialize(data_path)
+        # 初始化命令行对象
+        self.nbc = NextBV2CLI(nextb_binance=nbb, nextb_serialize=nbs)
+        assert self.nbc.cli_init_data("BNBUSDT")
+        assert self.nbc.cli_update_data("BNBUSDT", limit=1) == False
