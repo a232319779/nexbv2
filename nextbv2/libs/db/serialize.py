@@ -68,12 +68,9 @@ class NextBSerialize(object):
         # 空字典则返回错误
         if not self.datas:
             return False
-        update_time = self.datas.get("update_time", "")
-        now_time = datetime.datetime.now().strftime("%Y-%m-%d %H:00:00")
-        # 避免同一小时内，多次更新导致数据不一致
-        if update_time[:13] != now_time[:13]:
-            with open(self.data_path, "wb") as f:
-                pickle.dump(self.datas, f, 2)
+
+        with open(self.data_path, "wb") as f:
+            pickle.dump(self.datas, f, 2)
         return True
 
     def update_datas(self, symbol, datas):
@@ -81,12 +78,23 @@ class NextBSerialize(object):
         更新指定币种的K线数据
         数据格式见self.load_datas()
         """
+        now_time = datetime.datetime.now()
         # 已包含指定币种数据，则直接追加更新
         if symbol in self.datas.keys():
-            self.datas[symbol]["update_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:00:00")
-            self.datas[symbol]["data"].extend(datas)
+            update_time_str = self.datas[symbol].get("update_time", "")
+            if update_time_str == "":
+                return False
+            update_time = datetime.datetime.strptime(update_time_str, "%Y-%m-%d %H:00:00")
+            dlt_time = now_time - update_time
+            time_hour = dlt_time.days * 24 + dlt_time.seconds // 3600
+            # 只有当时间间隔与数据长度相等时才更新数据
+            if time_hour == len(datas):
+                self.datas[symbol]["update_time"] = now_time.strftime("%Y-%m-%d %H:00:00")
+                self.datas[symbol]["data"].extend(datas)
         else:
             self.datas[symbol] = dict()
-            self.datas[symbol]["update_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:00:00")
+            self.datas[symbol]["update_time"] = now_time.strftime("%Y-%m-%d %H:00:00")
             self.datas[symbol]["data"] = list()
             self.datas[symbol]["data"].extend(datas)
+    
+        return True

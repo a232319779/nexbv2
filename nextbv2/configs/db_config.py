@@ -7,5 +7,5 @@
 # @WeChat   : NextB
 
 DB_CONFIG = {
-    "data_path": "~/nextbv2/data",
+    "data_path": "./nextbv2/data",
 }
