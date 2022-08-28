@@ -21,18 +21,22 @@ __doc__ = """
     11. get_my_trades()：获取历史成交记录
 """
 
+import json
 from binance.client import Client
+from nextbv2.libs.logs.logs import *
 
 
-class NextBBiance(object):
+class NextBBinance(object):
     def __init__(self, api_key, api_secret, proxies={}):
         """
         初始化币安API对象
         """
         # 使用代理服务器
         if proxies:
+            info("初始化币安api接口对象，代理地址设置为：{}".format(json.dumps(proxies)))
             self.client = Client(api_key, api_secret, {"proxies": proxies})
         else:
+            info("初始化币安api接口对象，不使用代理。")
             self.client = Client(api_key, api_secret)
 
     def get_symbol_info(self, symbol):
@@ -66,6 +70,7 @@ class NextBBiance(object):
             ]
         }
         """
+        info("查询币种-{}的信息。".format(symbol))
         return self.client.get_symbol_info(symbol=symbol)
 
     def get_klines(self, symbol, interval=Client.KLINE_INTERVAL_1HOUR, limit=500):
@@ -89,6 +94,7 @@ class NextBBiance(object):
             ]
         ]
         """
+        info("获取币种-{}的K线数据。".format(symbol))
         return self.client.get_klines(symbol=symbol, interval=interval, limit=limit)
 
     def get_asset_balance(self, symbol="USDT"):
@@ -101,6 +107,7 @@ class NextBBiance(object):
             "locked": "0.00000000"
         }
         """
+        info("查询钱包中币种-{}的数量。".format(symbol))
         return self.client.get_asset_balance(symbol)
 
     def get_symbol_ticker(self, symbol):
@@ -112,6 +119,7 @@ class NextBBiance(object):
             "price": "4.00000200"
         }
         """
+        info("查询币种-{}的价格。".format(symbol))
         return self.client.get_symbol_ticker(symbol=symbol)
 
     def order_limit_buy(self, symbol, price, quantity):
@@ -164,6 +172,7 @@ class NextBBiance(object):
             ]
         }
         """
+        info("设定币种-{}的买入价格，价格为：{}，数量为：{}。".format(symbol, price, quantity))
         return self.client.order_limit_buy(
             symbol=symbol, price=price, quantity=quantity
         )
@@ -173,6 +182,7 @@ class NextBBiance(object):
         通过币安API接口，设定限价卖出单
         返回值格式，同：order_limit_buy
         """
+        info("设定币种-{}的卖出价格，价格为：{}，数量为：{}。".format(symbol, price, quantity))
         return self.client.order_limit_sell(
             symbol=symbol, price=price, quantity=quantity
         )
@@ -182,6 +192,7 @@ class NextBBiance(object):
         通过币安API接口，设定市价买入单: taker
         返回值格式，同：order_limit_buy
         """
+        info("按市价买入币种-{}，数量为：{}。".format(symbol, quantity))
         return self.client.order_market_buy(symbol=symbol, quantity=quantity)
 
     def order_market_sell(self, symbol, quantity):
@@ -189,6 +200,7 @@ class NextBBiance(object):
         通过币安API接口，设定市价卖出单: maker
         返回值格式，同：order_limit_buy
         """
+        info("按市价卖出币种-{}，数量为：{}。".format(symbol, quantity))
         return self.client.order_market_sell(symbol=symbol, quantity=quantity)
 
     def get_order(self, symbol, orderId):
@@ -211,6 +223,7 @@ class NextBBiance(object):
             "time": 1499827319559
         }
         """
+        info("查询币种-{}的订单信息，订单编号：{}。".format(symbol, orderId))
         return self.client.get_order(symbol=symbol, orderId=orderId)
 
     def cancel_order(self, symbol, orderId):
@@ -224,6 +237,7 @@ class NextBBiance(object):
             "clientOrderId": "cancelMyOrder1"
         }
         """
+        info("取消币种-{}的订单，订单编号：{}。".format(symbol, orderId))
         return self.client.cancel_order(symbol=symbol, orderId=orderId)
 
     def get_my_trades(self, symbol, limit=5):
@@ -244,4 +258,5 @@ class NextBBiance(object):
             }
         ]
         """
+        info("查询币种-{}最近的{}次交易信息，订单编号：{}。".format(symbol, limit))
         return self.client.get_my_trades(symbol=symbol, limit=limit)
