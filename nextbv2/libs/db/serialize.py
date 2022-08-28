@@ -12,8 +12,10 @@ __doc__ = """
     2. dump_datas()：保存币种K线数据
 """
 
+import os
 import pickle
 import datetime
+from nextbv2.libs.logs.logs import *
 
 
 class NextBSerialize(object):
@@ -24,6 +26,7 @@ class NextBSerialize(object):
         """
         self.datas = dict()
         self.data_path = data_path
+        info("初始化数据序列化对象，数据保存路径为：{}".format(data_path))
 
     def load_datas(self):
         """
@@ -56,7 +59,13 @@ class NextBSerialize(object):
             with open(self.data_path, "rb") as f:
                 self.datas = pickle.load(f)
         except Exception as e:
+            error("加载序列化数据失败，失败原因：{}".format(str(e)))
             return False
+        info(
+            "加载序列化数据成功，数据路径：{}，数据大小：{}mb".format(
+                self.data_path, os.path.getsize(self.data_path)/1024/1024
+            )
+        )
         return True
 
     def dump_datas(self):
@@ -67,10 +76,16 @@ class NextBSerialize(object):
         """
         # 空字典则返回错误
         if not self.datas:
+            error("保存序列化数据失败，失败原因：数据为空。")
             return False
 
         with open(self.data_path, "wb") as f:
             pickle.dump(self.datas, f, 2)
+        info(
+            "保存序列化数据成功，数据存储路径：{}，数据大小：{}mb".format(
+                self.data_path, os.path.getsize(self.data_path)/1024/1024
+            )
+        )
         return True
 
     def update_datas(self, symbol, datas):
@@ -84,19 +99,30 @@ class NextBSerialize(object):
             update_time_str = self.datas[symbol].get("update_time", "")
             if update_time_str == "":
                 return False
-            update_time = datetime.datetime.strptime(update_time_str, "%Y-%m-%d %H:00:00")
+            update_time = datetime.datetime.strptime(
+                update_time_str, "%Y-%m-%d %H:00:00"
+            )
             dlt_time = now_time - update_time
             time_hour = dlt_time.days * 24 + dlt_time.seconds // 3600
             # 只有当时间间隔与数据长度相等时才更新数据
             if time_hour == len(datas):
-                self.datas[symbol]["update_time"] = now_time.strftime("%Y-%m-%d %H:00:00")
+                self.datas[symbol]["update_time"] = now_time.strftime(
+                    "%Y-%m-%d %H:00:00"
+                )
                 self.datas[symbol]["data"].extend(datas)
+                info("更新序列化数据成功，币种-{}新增{}条数据".format(symbol, len(datas)))
             else:
+                error(
+                    "更新序列化数据失败，失败原因：更新数据间隔时常与数据数量不一致。时间间隔为：{}，更新数据数量为：{}".format(
+                        time_hour, len(datas)
+                    )
+                )
                 return False
         else:
             self.datas[symbol] = dict()
             self.datas[symbol]["update_time"] = now_time.strftime("%Y-%m-%d %H:00:00")
             self.datas[symbol]["data"] = list()
             self.datas[symbol]["data"].extend(datas)
-    
+            info("更新序列化数据成功，新增币种类型：{}，新增数据数量：{}".format(symbol, len(datas)))
+
         return True
