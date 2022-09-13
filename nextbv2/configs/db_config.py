@@ -7,5 +7,6 @@
 # @WeChat   : NextB
 
 DB_CONFIG = {
-    "data_path": "./nextbv2/data",
+    "data_path": "./datas/serialize.data",
+    "sqlite_path": "./datas/trade.db",
 }
