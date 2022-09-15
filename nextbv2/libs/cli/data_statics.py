@@ -11,7 +11,6 @@ import argparse
 import datetime
 from nextbv2.libs.common.constant import *
 from nextbv2.libs.common.common import create_serialize
-from nextbv2.libs.logs.logs import *
 
 
 def parse_cmd():
@@ -26,11 +25,11 @@ def parse_cmd():
     parser.add_argument(
         "-t",
         "--type",
-        help="指定统计方法。",
+        help="指定统计方法。当前支持方法[show/mean]，show：显示最近N条收盘价格，mean：显示最近N条价格的均值。",
         type=str,
         dest="serialize_type",
         action="store",
-        default="",
+        default="show",
     )
     parser.add_argument(
         "-s",
@@ -64,7 +63,7 @@ def statics_show(serialize_data, number):
     for key, value in datas.items():
         update_time_str = value.get("update_time", "")
         if update_time_str == "":
-            error("获取数据时间错误，退出程序。")
+            print("获取数据时间错误，退出程序。")
             exit(0)
         update_time = datetime.datetime.strptime(update_time_str, "%Y-%m-%d %H:00:00")
         for i in range(0, number):
@@ -113,7 +112,7 @@ def statics_mean(serialize_data, number):
 
 statics_func = {
     "show": statics_show,
-    "mean": statics_show,
+    "mean": statics_mean,
 }
 
 
