@@ -94,8 +94,12 @@ class NextBBinance(object):
             ]
         ]
         """
-        info("获取币种-{}的K线数据。".format(symbol))
-        return self.client.get_klines(symbol=symbol, interval=interval, limit=limit)
+        try:
+            info("获取币种-{}的K线数据。".format(symbol))
+            return self.client.get_klines(symbol=symbol, interval=interval, limit=limit)
+        except Exception as e:
+            error("获取币种-{}K线数据失败，失败原因：{}".format(symbol, str(e)))
+            return None
 
     def get_asset_balance(self, symbol="USDT"):
         """

@@ -126,3 +126,13 @@ class NextBSerialize(object):
             info("更新序列化数据成功，新增币种类型：{}，新增数据数量：{}".format(symbol, len(datas)))
 
         return True
+
+    def get_symbol_info(self):
+        """
+        返回当前数据集中包含的币种和时间信息
+        """
+        symbol_info = dict()
+        for symobl, info in self.datas.items():
+            symbol_info[symobl] = info.get("update_time")
+
+        return symbol_info

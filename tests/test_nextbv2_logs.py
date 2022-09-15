@@ -7,7 +7,6 @@
 # @WeChat   : NextB
 
 
-import pytest
 from nextbv2.libs.logs.logs import *
 
 
