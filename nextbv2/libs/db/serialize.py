@@ -63,7 +63,7 @@ class NextBSerialize(object):
             return False
         info(
             "加载序列化数据成功，数据路径：{}，数据大小：{}mb".format(
-                self.data_path, os.path.getsize(self.data_path)/1024/1024
+                self.data_path, os.path.getsize(self.data_path) / 1024 / 1024
             )
         )
         return True
@@ -83,7 +83,7 @@ class NextBSerialize(object):
             pickle.dump(self.datas, f, 2)
         info(
             "保存序列化数据成功，数据存储路径：{}，数据大小：{}mb".format(
-                self.data_path, os.path.getsize(self.data_path)/1024/1024
+                self.data_path, os.path.getsize(self.data_path) / 1024 / 1024
             )
         )
         return True
@@ -93,7 +93,13 @@ class NextBSerialize(object):
         更新指定币种的K线数据
         数据格式见self.load_datas()
         """
-        now_time = datetime.datetime.now()
+        # 只更新到上一个整点
+        datas = datas[:-1]
+        if len(datas) == 0:
+            error("更新序列化数据失败，失败原因：更新数据集为空")
+            return False
+        # 获取上一个整点
+        now_time = datetime.datetime.now() - datetime.timedelta(minutes=60)
         # 已包含指定币种数据，则直接追加更新
         if symbol in self.datas.keys():
             update_time_str = self.datas[symbol].get("update_time", "")
@@ -105,7 +111,7 @@ class NextBSerialize(object):
             dlt_time = now_time - update_time
             time_hour = dlt_time.days * 24 + dlt_time.seconds // 3600
             # 只有当时间间隔与数据长度相等时才更新数据
-            if time_hour == len(datas):
+            if time_hour > 0 and time_hour == len(datas):
                 self.datas[symbol]["update_time"] = now_time.strftime(
                     "%Y-%m-%d %H:00:00"
                 )
@@ -113,7 +119,7 @@ class NextBSerialize(object):
                 info("更新序列化数据成功，币种-{}新增{}条数据".format(symbol, len(datas)))
             else:
                 error(
-                    "更新序列化数据失败，失败原因：更新数据间隔时常与数据数量不一致。时间间隔为：{}，更新数据数量为：{}".format(
+                    "更新序列化数据失败，失败原因：更新数据间隔时常与数据数量不一致或者不用更新。时间间隔为：{}，更新数据数量为：{}".format(
                         time_hour, len(datas)
                     )
                 )
@@ -136,3 +142,9 @@ class NextBSerialize(object):
             symbol_info[symobl] = info.get("update_time")
 
         return symbol_info
+
+    def get_datas(self):
+        """
+        返回数据集
+        """
+        return self.datas
