@@ -7,23 +7,30 @@
 # @WeChat   : NextB
 
 
-import pytest
 import json
-from nextbv2.configs.binance_config import BINANCE_CONFIG
 from nextbv2.libs.binance.apis import NextBBinance
 from nextbv2.libs.logs.logs import *
+from nextbv2.libs.common.common import *
+from nextbv2.libs.common.constant import *
 
 
 class TestNextBV2Binance:
     def test_binance(self):
+        curdir = os.path.dirname(os.path.abspath(__file__))
+        config = parse_ini_config(os.path.join(curdir, "./nextbv2.conf"))
         # 初始化币安API对象
-        api_key = BINANCE_CONFIG.get("api_key")
-        api_secret = BINANCE_CONFIG.get("api_secret")
-        proxies = BINANCE_CONFIG.get("proxies")
+        api_key = config.get("api_key")
+        api_secret = config.get("api_secret")
+        proxies = {}
+        if config.get("proxy").lower() == CONFIG_PROXY_ON:
+            proxies["http"] = config.get("http_proxy")
+            proxies["https"] = config.get("https_proxy")
+        symbols = config.get("symbols")
+        klines_interval = config.get("klines_interval")
         nbb = NextBBinance(api_key, api_secret, proxies)
         balance = nbb.get_asset_balance()
-        price = nbb.get_symbol_ticker("BNBUSDT")
-        klines = nbb.get_klines("BNBUSDT", "1h", limit=2)
+        price = nbb.get_symbol_ticker(symbols[0])
+        klines = nbb.get_klines(symbols[0], klines_interval, limit=2)
         assert "asset" in balance.keys()
         assert "price" in price.keys()
         assert len(klines) > 0

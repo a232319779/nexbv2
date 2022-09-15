@@ -7,7 +7,6 @@
 # @WeChat   : NextB
 
 import os
-import pytest
 from nextbv2.configs.db_config import DB_CONFIG
 from nextbv2.libs.db.serialize import NextBSerialize
 from nextbv2.libs.db.nbsqlite import NextBSqlite

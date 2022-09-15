@@ -20,6 +20,7 @@ setup(
 
     entry_points={
         "console_scripts": [
+            "nextbv2-data-process = nextbv2.libs.cli.data_process:run",
         ],
     },
 
