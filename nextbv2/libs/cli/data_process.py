@@ -6,8 +6,9 @@
 # @Software : Visual Studio Code
 # @WeChat   : NextB
 
-import datetime
+
 import argparse
+from nextbv2.version import NEXTB_V2_VERSION
 from nextbv2.libs.common.constant import (
     MAX_LIMIT,
     ONE_HOUR_TIMESTAMP,
@@ -19,7 +20,7 @@ from nextbv2.libs.common.common import (
     create_serialize,
 )
 from nextbv2.libs.common.nextb_time import get_now_timestamp, timestamp_to_time
-from nextbv2.libs.logs.logs import *
+from nextbv2.libs.logs.logs import info
 
 
 def parse_cmd():
@@ -27,9 +28,9 @@ def parse_cmd():
     数据初始化和更新
     """
     parser = argparse.ArgumentParser(
-        prog="nextbv2-data-process",
-        description="NextBv2下载、更新本地数据集工具。版本号：2.0.0",
-        epilog="使用方式：nextbv2-data-process -c config_file",
+        prog="nextb-v2-data-process",
+        description="NextBv2下载、更新本地数据集工具。版本号：{}".format(NEXTB_V2_VERSION),
+        epilog="使用方式：nextb-v2-data-process -c config_file",
     )
     parser.add_argument(
         "-c",
@@ -44,21 +45,6 @@ def parse_cmd():
     args = parser.parse_args()
 
     return args
-
-
-def calc_update_data_len(update_time_str):
-    """
-    计算从上次更新到当前时间需要更新的数据长度
-    update_time_str：上次更新的时间，str，时间格式如，%Y-%m-%d %H:00:00
-    """
-    if update_time_str == "":
-        return False
-    now_time = datetime.datetime.now()
-    update_time = datetime.datetime.strptime(update_time_str, "%Y-%m-%d %H:00:00")
-    dlt_time = now_time - update_time
-    time_hour = dlt_time.days * 24 + dlt_time.seconds // 3600
-
-    return time_hour
 
 
 def data_process(config_file):
