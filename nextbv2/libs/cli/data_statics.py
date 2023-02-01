@@ -8,9 +8,9 @@
 
 
 import argparse
-import datetime
 from nextbv2.libs.common.constant import *
 from nextbv2.libs.common.common import create_serialize
+from nextbv2.libs.common.nextb_time import timestamp_to_time
 
 
 def parse_cmd():
@@ -59,15 +59,11 @@ def statics_show(serialize_data, number):
     nextbv2_serialize = create_serialize(serialize_data)
     nextbv2_serialize.load_datas()
     datas = nextbv2_serialize.get_datas()
-    print("币种,时间,收盘价,振幅")
+    print("币种,时间,收盘价,最高振幅,最低振幅")
     for key, value in datas.items():
-        update_time_str = value.get("update_time", "")
-        if update_time_str == "":
-            print("获取数据时间错误，退出程序。")
-            exit(0)
-        update_time = datetime.datetime.strptime(update_time_str, "%Y-%m-%d %H:00:00")
         for i in range(0, number):
-            data = value.get("data", [])[-1 - i]
+            data = value[-1 - i]
+            update_time = timestamp_to_time(data[0])
             open_price = float(data[1])
             high_price = float(data[2])
             low_price = float(data[3])
@@ -76,14 +72,9 @@ def statics_show(serialize_data, number):
             amplitude_B = (close_price - open_price) / close_price * 100.0
             print(
                 "{},{},{},{},{}".format(
-                    key,
-                    update_time.strftime("%Y-%m-%d %H:00:00"),
-                    data[4],
-                    amplitude_A,
-                    amplitude_B
+                    key, update_time, data[4], amplitude_A, amplitude_B
                 )
             )
-            update_time -= datetime.timedelta(minutes=60)
 
 
 def statics_mean(serialize_data, number):
@@ -96,7 +87,7 @@ def statics_mean(serialize_data, number):
         low_sum = 0.0
         close_sum = 0.0
         for i in range(0, number):
-            data = value.get("data", [])[-1 - i]
+            data = value[-1 - i]
             high_sum += float(data[2])
             low_sum += float(data[3])
             close_sum += float(data[4])
