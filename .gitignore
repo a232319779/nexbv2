@@ -10,6 +10,8 @@ __pycache__/
 
 # tmp
 tmp/
+datas/
+configs/
 
 # Distribution / packaging
 .Python
