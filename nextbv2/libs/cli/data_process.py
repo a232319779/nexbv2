@@ -94,7 +94,7 @@ def data_process(config_file):
             now_timestamp = get_now_timestamp()
             # 计算需要获取的数据量
             startTime = nextb_serialize.get_last_data_timestamp(symbol)
-            if now_timestamp - startTime < ONE_HOUR_TIMESTAMP:
+            if now_timestamp - startTime < 2 * ONE_HOUR_TIMESTAMP:
                 info(
                     "{}数据已为最新数据集，无需更新，最新时间：{}".format(
                         symbol, timestamp_to_time(startTime)
