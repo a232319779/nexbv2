@@ -30,7 +30,14 @@ class TestNextBV2Binance:
         nbb = NextBBinance(api_key, api_secret, proxies)
         balance = nbb.get_asset_balance()
         price = nbb.get_symbol_ticker(symbols[0])
-        klines = nbb.get_klines(symbols[0], klines_interval, limit=2)
+        param = {
+            "symbol": symbols[0],
+            "interval": klines_interval,
+            "limit": 2,
+            "startTime": None,
+            "endtTime": None,
+        }
+        klines = nbb.get_klines(param)
         assert "asset" in balance.keys()
         assert "price" in price.keys()
         assert len(klines) > 0

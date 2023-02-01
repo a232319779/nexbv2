@@ -9,7 +9,11 @@
 import datetime
 import argparse
 import nextbv2.libs.common.constant as nextbv2_constant
-from nextbv2.libs.common.common import parse_ini_config, create_binance, create_serialize
+from nextbv2.libs.common.common import (
+    parse_ini_config,
+    create_binance,
+    create_serialize,
+)
 from nextbv2.libs.logs.logs import *
 
 
@@ -89,9 +93,14 @@ def data_process(config_file):
             )
             continue
         # 从接口获取数据
-        datas = nextb_binance.get_klines(
-            symbol=symbol, interval=klines_interval, limit=limit
-        )
+        param = {
+            "symbol": symbol,
+            "interval": klines_interval,
+            "limit": limit,
+            "startTime": None,
+            "endtTime": None,
+        }
+        datas = nextb_binance.get_klines(param)
         if datas:
             nextb_serialize.update_datas(symbol=symbol, datas=datas)
     # 保存更新结果
@@ -104,3 +113,6 @@ def run():
     """
     args = parse_cmd()
     data_process(args.config)
+
+
+run()
