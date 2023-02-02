@@ -132,8 +132,7 @@ def cosine_similarity(param):
         cos_sim = np.dot(base_vec, match_vec) / (
             np.linalg.norm(base_vec) * np.linalg.norm(match_vec)
         )
-        info("{}与{}的余弦相似度为: {}".format(symbol, base_symbol, cos_sim))
-        info("{} 和 {}".format(base_symbol_data, match_symbol_data))
+        info("{}与{}最近{}个小时的余弦相似度为: {}".format(symbol, base_symbol, number, cos_sim))
 
 
 statics_func = {
