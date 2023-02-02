@@ -8,12 +8,22 @@
 
 
 import argparse
+from tqdm import tqdm
 import numpy as np
 from nextbv2.version import NEXTB_V2_VERSION
 from nextbv2.libs.common.constant import *
 from nextbv2.libs.common.common import create_serialize
 from nextbv2.libs.common.nextb_time import timestamp_to_time
 from nextbv2.libs.logs.logs import info
+
+
+help_str = """
+指定统计方法。当前支持方法[show/mean/cos/csv]，默认值为：show。\
+show：显示最近N条收盘价格，\
+mean：显示最近N条价格的均值，\
+cos：比较币种之间K线的余弦相似度，\
+csv：生成csv文件
+"""
 
 
 def parse_cmd():
@@ -28,7 +38,7 @@ def parse_cmd():
     parser.add_argument(
         "-t",
         "--type",
-        help="指定统计方法。当前支持方法[show/mean/cos]，show：显示最近N条收盘价格，mean：显示最近N条价格的均值，cos：比较币种之间K线的余弦相似度。默认值为：show",
+        help=help_str,
         type=str,
         dest="serialize_type",
         action="store",
@@ -55,11 +65,20 @@ def parse_cmd():
     parser.add_argument(
         "-b",
         "--base-symbol",
-        help="指定基准币种。默认值为：BNBUSDT。",
+        help="指定余弦相似度的基准币种。默认值为：BNBUSDT。",
         type=str,
         dest="base_symbol",
         action="store",
         default="BNBUSDT",
+    )
+    parser.add_argument(
+        "-f",
+        "--file-name",
+        help="指定分析结果保存的csv文件名称。默认值为：./NextB_V2.csv。",
+        type=str,
+        dest="file_name",
+        action="store",
+        default="./NextB_V2.csv",
     )
 
     args = parser.parse_args()
@@ -135,10 +154,48 @@ def cosine_similarity(param):
         info("{}与{}最近{}个小时的余弦相似度为: {}".format(symbol, base_symbol, number, cos_sim))
 
 
+def gen_analyse_csv_file(param):
+    """
+    生成csv文件，便于使用xlsx分析
+    行头包括：币种,时间,开盘价,收盘价,收盘涨跌幅度,最高涨幅,最高跌幅,最大振幅,成交量,吃单数
+    """
+    serialize_data = param.get("serialize_data")
+    number = param.get("number")
+    csv_file_name = param.get("file_name")
+    nextbv2_serialize = create_serialize(serialize_data)
+    nextbv2_serialize.load_datas()
+    datas = nextbv2_serialize.get_datas()
+    rows = list()
+    for symbol in datas.keys():
+        for d in tqdm(datas[symbol][-number:], unit="row", desc="{}分析中".format(symbol)):
+            open_price = float(d[1])
+            high_price = float(d[2])
+            low_price = float(d[3])
+            close_price = float(d[4])
+            row = list()
+            row.append(symbol)
+            row.append(timestamp_to_time(d[0]))
+            row.append(d[1])
+            row.append(d[4])
+            row.append(str((close_price - open_price) / open_price))
+            row.append(str((high_price - open_price) / open_price))
+            row.append(str((low_price - open_price) / open_price))
+            row.append(str((high_price - low_price) / open_price))
+            row.append(d[5])
+            row.append(d[9])
+            rows.append(",".join(row))
+
+    headers = "币种,时间,开盘价,收盘价,收盘涨跌幅度,最高涨幅,最高跌幅,最大振幅,成交量,吃单量"
+    with open(csv_file_name, "w", encoding="utf8") as f:
+        f.write(headers + "\n")
+        f.write("\n".join(rows))
+
+
 statics_func = {
     "show": statics_show,
     "mean": statics_mean,
     "cos": cosine_similarity,
+    "csv": gen_analyse_csv_file,
 }
 
 
@@ -151,5 +208,6 @@ def run():
         "serialize_data": args.serialize_data,
         "number": args.number,
         "base_symbol": args.base_symbol,
+        "file_name": args.file_name,
     }
     statics_func[args.serialize_type](param)
