@@ -8,6 +8,7 @@
 
 
 import argparse
+import numpy as np
 from nextbv2.version import NEXTB_V2_VERSION
 from nextbv2.libs.common.constant import *
 from nextbv2.libs.common.common import create_serialize
@@ -27,7 +28,7 @@ def parse_cmd():
     parser.add_argument(
         "-t",
         "--type",
-        help="指定统计方法。当前支持方法[show/mean]，show：显示最近N条收盘价格，mean：显示最近N条价格的均值。默认值为：show",
+        help="指定统计方法。当前支持方法[show/mean/cos]，show：显示最近N条收盘价格，mean：显示最近N条价格的均值，cos：比较币种之间K线的余弦相似度。默认值为：show",
         type=str,
         dest="serialize_type",
         action="store",
@@ -51,13 +52,24 @@ def parse_cmd():
         action="store",
         default=7,
     )
+    parser.add_argument(
+        "-b",
+        "--base-symbol",
+        help="指定基准币种。默认值为：BNBUSDT。",
+        type=str,
+        dest="base_symbol",
+        action="store",
+        default="BNBUSDT",
+    )
 
     args = parser.parse_args()
 
     return args
 
 
-def statics_show(serialize_data, number):
+def statics_show(param):
+    serialize_data = param.get("serialize_data")
+    number = param.get("number")
     nextbv2_serialize = create_serialize(serialize_data)
     nextbv2_serialize.load_datas()
     datas = nextbv2_serialize.get_datas()
@@ -79,7 +91,9 @@ def statics_show(serialize_data, number):
             )
 
 
-def statics_mean(serialize_data, number):
+def statics_mean(param):
+    serialize_data = param.get("serialize_data")
+    number = param.get("number")
     nextbv2_serialize = create_serialize(serialize_data)
     nextbv2_serialize.load_datas()
     datas = nextbv2_serialize.get_datas()
@@ -103,9 +117,29 @@ def statics_mean(serialize_data, number):
         )
 
 
+def cosine_similarity(param):
+    serialize_data = param.get("serialize_data")
+    base_symbol = param.get("base_symbol")
+    number = param.get("number")
+    nextbv2_serialize = create_serialize(serialize_data)
+    nextbv2_serialize.load_datas()
+    datas = nextbv2_serialize.get_datas()
+    base_symbol_data = [float(d[4]) for d in datas[base_symbol][-number:]]
+    base_vec = np.array([d for d in base_symbol_data])
+    for symbol, data in datas.items():
+        match_symbol_data = [float(d[4]) for d in data[-number:]]
+        match_vec = np.array([d for d in match_symbol_data])
+        cos_sim = np.dot(base_vec, match_vec) / (
+            np.linalg.norm(base_vec) * np.linalg.norm(match_vec)
+        )
+        info("{}与{}的余弦相似度为: {}".format(symbol, base_symbol, cos_sim))
+        info("{} 和 {}".format(base_symbol_data, match_symbol_data))
+
+
 statics_func = {
     "show": statics_show,
     "mean": statics_mean,
+    "cos": cosine_similarity,
 }
 
 
@@ -114,4 +148,9 @@ def run():
     CLI命令行入口
     """
     args = parse_cmd()
-    statics_func[args.serialize_type](args.serialize_data, args.number)
+    param = {
+        "serialize_data": args.serialize_data,
+        "number": args.number,
+        "base_symbol": args.base_symbol,
+    }
+    statics_func[args.serialize_type](param)
