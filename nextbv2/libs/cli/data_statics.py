@@ -22,7 +22,8 @@ help_str = """
 show：显示最近N条收盘价格，\
 mean：显示最近N条价格的均值，\
 cos：比较币种之间K线的余弦相似度，\
-csv：生成csv文件
+csv：分析数据并导出到csv文件，\
+data：导出原始数据到csv文件
 """
 
 
@@ -157,7 +158,7 @@ def cosine_similarity(param):
 def gen_analyse_csv_file(param):
     """
     生成csv文件，便于使用xlsx分析
-    行头包括：币种,时间,开盘价,收盘价,收盘涨跌幅度,最高涨幅,最高跌幅,最大振幅,成交量,吃单数
+    行头包括：币种,开盘时间,开盘价,收盘价,收盘涨跌幅度,最高涨幅,最高跌幅,最大振幅,成交量,吃单数
     """
     serialize_data = param.get("serialize_data")
     number = param.get("number")
@@ -185,17 +186,50 @@ def gen_analyse_csv_file(param):
             row.append(d[9])
             rows.append(",".join(row))
 
-    headers = "币种,时间,开盘价,收盘价,收盘涨跌幅度,最高涨幅,最高跌幅,最大振幅,成交量,吃单量"
+    headers = "币种,开盘时间,开盘价,收盘价,收盘涨跌幅度,最高涨幅,最高跌幅,最大振幅,成交量,吃单量"
     with open(csv_file_name, "w", encoding="utf8") as f:
         f.write(headers + "\n")
         f.write("\n".join(rows))
 
+def data_export_csv_file(param):
+    """
+    导出数据为csv文件，便于使用xlsx分析
+    行头包括：币种,开盘时间,开盘价,最高价,最低价,收盘价,成交量,成交额,交易单数,吃单量,吃单数
+    """
+    serialize_data = param.get("serialize_data")
+    number = param.get("number")
+    csv_file_name = param.get("file_name")
+    nextbv2_serialize = create_serialize(serialize_data)
+    nextbv2_serialize.load_datas()
+    datas = nextbv2_serialize.get_datas()
+    rows = list()
+    for symbol in datas.keys():
+        for d in tqdm(datas[symbol][-number:], unit="row", desc="{}导出中".format(symbol)):
+            row = list()
+            row.append(symbol)
+            row.append(timestamp_to_time(d[0]))
+            row.append(d[1])
+            row.append(d[2])
+            row.append(d[3])
+            row.append(d[4])
+            row.append(d[5])
+            row.append(d[7])
+            row.append(str(d[8]))
+            row.append(d[9])
+            row.append(d[10])
+            rows.append(",".join(row))
+
+    headers = "币种,开盘时间,开盘价,最高价,最低价,收盘价,成交量(个),成交额(U),交易单数,吃单量(个),吃单额(U)"
+    with open(csv_file_name, "w", encoding="utf8") as f:
+        f.write(headers + "\n")
+        f.write("\n".join(rows))
 
 statics_func = {
     "show": statics_show,
     "mean": statics_mean,
     "cos": cosine_similarity,
     "csv": gen_analyse_csv_file,
+    "data": data_export_csv_file,
 }
 
 
