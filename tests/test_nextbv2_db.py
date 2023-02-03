@@ -7,9 +7,11 @@
 # @WeChat   : NextB
 
 import os
+import datetime
 from nextbv2.configs.db_config import DB_CONFIG
 from nextbv2.libs.db.serialize import NextBSerialize
-from nextbv2.libs.db.nbsqlite import NextBSqlite
+from nextbv2.libs.db.sqlite_db import NextBTradeDB
+from nextbv2.libs.common.constant import TradeStatus
 
 
 class TestNextBV2Serialize:
@@ -57,42 +59,49 @@ class TestNextBV2Serialize:
 class TestNextBSqlite:
     def test_sqlite(self):
         data = {
-            "user_id": 1,
+            "user_id": "1",
             "trading_straregy_name": "网格交易策略",
             "order_id": 123456789,
             "symbol": "btc",
             "buy_price": 20000.0,
             "buy_quantity": 1.01,
             "buy_quote": 0.0,
-            "buy_time": "2022-09-13 20:00:00",
+            "buy_time": datetime.datetime.now(),
             "sell_price": 0.0,
             "sell_quantity": 0.0,
             "sell_quote": 0.0,
-            "sell_time": "1970-01-01 00:00:00",
+            "sell_time": datetime.datetime.now(),
             "profit": 0.0,
             "profit_ratio": 0.0,
-            "status": 1,
-            "tickSize_index": 2,
-            "stepSize_index": 2,
+            "status": TradeStatus.SELLING.value
         }
         # 初始化序列化对象
         sqlite_path = DB_CONFIG.get("sqlite_path")
         dir_path = os.path.dirname(sqlite_path)
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
-        nbs = NextBSqlite(sqlite_path)
+        nbs = NextBTradeDB(sqlite_path)
+        nbs.create_session()
+        # 创建表
         assert nbs.create_table()
+        # 插入数据
         assert nbs.add(data)
-        new_data = nbs.get_last_one(data.get("user_id", 0))
+        user_id = data.get("user_id", 0)
+        # 获取最近交易数据
+        new_data = nbs.get_last_one(user_id)
         assert new_data
-        new_data["sell_price"] = 20010.0
-        new_data["sell_quantity"] = 1.01
-        new_data["sell_quote"] = 1.01
-        new_data["sell_time"] = "2022-09-13 20:00:00"
-        new_data["profit"] = 10.0
-        new_data["profit_ratio"] = 0.001
-        new_data["status"] = 2
-        new_data["tickSize_index"] = 2
-        new_data["stepSize_index"] = 2
-        assert nbs.update(new_data)
+        # 更新交易状态
+        assert nbs.status_merge(user_id)
+        # 插入第二条数据
+        assert nbs.add(data)
+        # 更新交易记录
+        done_data = dict()
+        done_data["sell_price"] = 20010.0
+        done_data["sell_quantity"] = 1.01
+        done_data["sell_quote"] = 1.01
+        done_data["sell_time"] = datetime.datetime.now()
+        done_data["profit"] = 10.0
+        done_data["profit_ratio"] = 0.001
+        done_data["status"] = TradeStatus.DONE.value
+        assert nbs.status_done(user_id, done_data)
         nbs.close()
