@@ -53,9 +53,6 @@ class TradingStraregyOne(object):
         profit = sell_quote - buy_quote
         profit_ratio = profit / buy_quote
         record_data = {
-            "user": "ddvv",
-            "trading_straregy_name": "trade_one",
-            "symbol": "BNBUSDT",
             "order_id": 1234,
             "buy_price": buy_price,
             "buy_quantity": quantity,

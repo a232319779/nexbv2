@@ -2,20 +2,23 @@
 # @Time     : 2023/02/03 17:06:10
 # @Author   : ddvv
 # @Site     : https://ddvvmmzz.github.io
-# @File     : cli_trade.py
+# @File     : cli_trade_simulation.py
 # @Software : Visual Studio Code
 # @WeChat   : NextB
 
 
 import argparse
+from tqdm import tqdm
 from nextbv2.version import NEXTB_V2_VERSION
 from nextbv2.libs.common.constant import *
+from nextbv2.libs.logs.logs import info
 from nextbv2.libs.common.common import create_serialize
+from nextbv2.libs.common.nextb_time import timestamp_to_time
 from nextbv2.libs.trade.trade_one import TradingStraregyOne
 from nextbv2.libs.db.sqlite_db import NextBTradeDB
 from nextbv2.libs.common.constant import TradeStatus
 
-
+trading_straregy_name = "trade_one"
 
 def parse_cmd():
     """
@@ -71,6 +74,15 @@ def parse_cmd():
         action="store",
         default=0,
     )
+    parser.add_argument(
+        "-u",
+        "--user",
+        help="指定用户名称。默认值为：ddvv",
+        type=str,
+        dest="user",
+        action="store",
+        default="ddvv",
+    )
 
     args = parser.parse_args()
 
@@ -82,6 +94,7 @@ def trade_one(param):
     symbol = param.get("symbol")
     sqlite_path = param.get("sqlite")
     number = param.get("number")
+    user = param.get("user")
     nb_db = NextBTradeDB(sqlite_path)
     nb_db.create_table()
     nb_db.create_session()
@@ -91,29 +104,33 @@ def trade_one(param):
     trade_datas = s_datas.get(symbol)
     if number != 0:
         trade_datas = trade_datas[-number:]
-    config = {
-        "down_count": 3
-    }
+    config = {"down_count": 3}
     ts = TradingStraregyOne(config)
     data_len = len(trade_datas)
-    user = "ddvv"
     sell_price = 9999999.9
-    for i in range(0, data_len):
-        iter_datas = trade_datas[:i+1]
+    for i in tqdm(range(0, data_len), unit="row", desc="{}模拟交易中".format(symbol)):
+        iter_datas = trade_datas[: i + 1]
         high_price = float(trade_datas[i][2])
         if ts.is_sell(sell_price, high_price):
             sell_price = 9999999.9
-            sell_data = {
-                "sell_time": trade_datas[i][0]
-            }
+            sell_data = {"sell_time": trade_datas[i][0]}
             nb_db.status_done(user, sell_data)
         if nb_db.get_last_one_record_status(user) == TradeStatus.SELLING.value:
             continue
         if ts.is_buy_time(iter_datas):
             record_data = ts.buy(trade_datas[i])
+            record_data["user"] = user
+            record_data["trading_straregy_name"] = trading_straregy_name
+            record_data["symbol"] = symbol
             sell_price = record_data.get("sell_price")
             nb_db.add(record_data)
-    
+    count, total_profit = nb_db.get_total_ratio(user, float(trade_datas[i][4]))
+    info(
+        "开始交易时间：{}，共计交易：{}次，共计获利：{}U".format(
+            timestamp_to_time(trade_datas[0][0]), count, total_profit
+        )
+    )
+
 
 trade_func = {
     "trade_one": trade_one,
@@ -130,5 +147,6 @@ def run():
         "symbol": args.symbol,
         "sqlite": args.sqlite,
         "number": args.number,
+        "user": args.user,
     }
     trade_func[args.trading_straregy](param)

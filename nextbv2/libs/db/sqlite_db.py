@@ -198,7 +198,7 @@ class NextBTradeDB:
             return True
         except Exception as e:
             return False
-        
+
     def status_done(self, user, data):
         try:
             trading_datas = (
@@ -206,7 +206,9 @@ class NextBTradeDB:
                 .filter(
                     and_(
                         NextBTradeTable.user == user,
-                        NextBTradeTable.status.in_([TradeStatus.MERGE.value, TradeStatus.SELLING.value]),
+                        NextBTradeTable.status.in_(
+                            [TradeStatus.MERGE.value, TradeStatus.SELLING.value]
+                        ),
                     )
                 )
                 .order_by(NextBTradeTable.id.desc())
@@ -227,3 +229,28 @@ class NextBTradeDB:
             return True
         except Exception as e:
             return False
+
+    def get_total_ratio(self, user, last_close_price):
+        count = 0
+        ratio_sum = 0.0
+        try:
+            trading_datas = (
+                self.session_maker.query(NextBTradeTable)
+                .filter(
+                    NextBTradeTable.user == user,
+                )
+                .order_by(NextBTradeTable.id.desc())
+                .all()
+            )
+            for td in trading_datas:
+                count += 1
+                if td.status == TradeStatus.DONE.value:
+                    ratio_sum += td.profit
+                elif td.status == TradeStatus.SELLING.value:
+                    ratio_sum = (
+                        ratio_sum + last_close_price * td.sell_quantity - td.buy_quote
+                    )
+        except Exception as e:
+            pass
+        ratio_sum = round(ratio_sum, 3)
+        return (count, ratio_sum)

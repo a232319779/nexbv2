@@ -56,7 +56,7 @@ do_setup(
         "console_scripts": [
             "nextb-v2-data-process = nextbv2.libs.cli.data_process:run",
             "nextb-v2-data-statics = nextbv2.libs.cli.data_statics:run",
-            "nextb-v2-trade = nextbv2.libs.cli.cli_trade:run",
+            "nextb-v2-trade-simulation = nextbv2.libs.cli.cli_trade_simulation:run",
         ],
     },
     classifiers=[
