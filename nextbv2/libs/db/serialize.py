@@ -27,7 +27,7 @@ class NextBSerialize(object):
         """
         self.datas = dict()
         self.data_path = data_path
-        info("初始化数据序列化对象，数据保存路径为：{}".format(data_path))
+        debug("初始化数据序列化对象，数据保存路径为：{}".format(data_path))
 
     def load_datas(self):
         """
@@ -59,7 +59,7 @@ class NextBSerialize(object):
         except Exception as e:
             error("加载序列化数据失败，失败原因：{}".format(str(e)))
             return False
-        info(
+        debug(
             "加载序列化数据成功，数据路径：{}，数据大小：{}mb".format(
                 self.data_path, os.path.getsize(self.data_path) / 1024 / 1024
             )
