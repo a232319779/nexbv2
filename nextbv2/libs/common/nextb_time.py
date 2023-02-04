@@ -9,14 +9,24 @@
 import datetime
 
 
+def timestamp_to_datetime(time_stamp):
+    """
+    时间戳转datetime对象
+    timestamp: 13位时间戳, 如: 1640966400000, 精确到毫秒
+    返回值: datetime对象
+    """
+    time_stamp = int(time_stamp / 1000)
+    datetime_obj = datetime.datetime.fromtimestamp(time_stamp)
+    return datetime_obj
+
+
 def timestamp_to_time(time_stamp):
     """
     时间戳转时间字符串
     timestamp: 13位时间戳, 如: 1640966400000, 精确到毫秒
     返回值: 时间字符串
     """
-    time_stamp = int(time_stamp / 1000)
-    datetime_obj = datetime.datetime.fromtimestamp(time_stamp)
+    datetime_obj = timestamp_to_datetime(time_stamp)
     date_time = datetime.datetime.strftime(datetime_obj, "%Y-%m-%d %H:%M:%S")
     return date_time
 
