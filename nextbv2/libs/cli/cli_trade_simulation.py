@@ -83,32 +83,27 @@ def parse_cmd():
         action="store",
         default="ddvv",
     )
+    parser.add_argument(
+        "-a",
+        "--auto",
+        help="指定模拟方式，自动模拟时忽略用户参数、数量参数、数据库名称。[非0：表示自动模拟，0：表示不自动模拟]默认值为：0",
+        type=int,
+        dest="auto",
+        action="store",
+        default=0,
+    )
 
     args = parser.parse_args()
 
     return args
 
-
-def trade_one(param):
-    serialize_data = param.get("serialize_data")
-    symbol = param.get("symbol")
-    sqlite_path = param.get("sqlite")
-    number = param.get("number")
-    user = param.get("user")
-    nb_db = NextBTradeDB(sqlite_path)
-    nb_db.create_table()
-    nb_db.create_session()
-    nextbv2_serialize = create_serialize(serialize_data)
-    nextbv2_serialize.load_datas()
-    s_datas = nextbv2_serialize.get_datas()
-    trade_datas = s_datas.get(symbol)
-    if number != 0:
-        trade_datas = trade_datas[-number:]
+def simulation(nb_db, user, symbol, trade_datas):
+    data_len = len(trade_datas)
+    # 加载交易策略
     config = {"down_count": 3}
     ts = TradingStraregyOne(config)
-    data_len = len(trade_datas)
     sell_price = 9999999.9
-    for i in tqdm(range(0, data_len), unit="row", desc="{}模拟交易中".format(symbol)):
+    for i in tqdm(range(0, data_len), unit="row", desc="{}模拟中".format(user)):
         iter_datas = trade_datas[: i + 1]
         high_price = float(trade_datas[i][2])
         if ts.is_sell(sell_price, high_price):
@@ -124,12 +119,48 @@ def trade_one(param):
             record_data["symbol"] = symbol
             sell_price = record_data.get("sell_price")
             nb_db.add(record_data)
-    count, total_profit = nb_db.get_total_ratio(user, float(trade_datas[i][4]))
+    count, total_profit, status = nb_db.get_total_ratio(user, float(trade_datas[i][4]))
     info(
         "开始交易时间：{}，共计交易：{}次，共计获利：{}U".format(
             timestamp_to_time(trade_datas[0][0]), count, total_profit
         )
     )
+    return ",".join([user, timestamp_to_time(trade_datas[0][0]), str(count), str(total_profit), str(status)])
+
+def trade_one_auto(nb_db, symbol, trade_datas):
+    datas = list()
+    for j in tqdm(range(0, len(trade_datas), 10), unit="user", desc="{}模拟交易中".format(symbol)):
+        user = "ddvv_{}".format(j)
+        new_trade_datas = trade_datas[j:]
+        datas.append(simulation(nb_db, user, symbol, new_trade_datas))
+    headers = "用户名,交易时间,交易次数,利润值,当前状态"
+    with open("test.csv", "w", encoding="utf8") as f:
+        f.write(headers + "\n")
+        f.write("\n".join(datas))
+
+
+def trade_one(param):
+    serialize_data = param.get("serialize_data")
+    symbol = param.get("symbol")
+    auto = param.get("auto")
+    sqlite_path = param.get("sqlite")
+    number = param.get("number")
+    user = param.get("user")
+    # 创建数据库
+    nb_db = NextBTradeDB(sqlite_path)
+    nb_db.create_table()
+    nb_db.create_session()
+    # 加载仿真数据
+    nextbv2_serialize = create_serialize(serialize_data)
+    nextbv2_serialize.load_datas()
+    s_datas = nextbv2_serialize.get_datas()
+    trade_datas = s_datas.get(symbol)
+    if number != 0:
+        trade_datas = trade_datas[-number:]
+    if auto:
+        trade_one_auto(nb_db, symbol, trade_datas)
+    else:
+        simulation(nb_db, user, symbol, trade_datas)
 
 
 trade_func = {
@@ -148,5 +179,6 @@ def run():
         "sqlite": args.sqlite,
         "number": args.number,
         "user": args.user,
+        "auto": args.auto
     }
     trade_func[args.trading_straregy](param)

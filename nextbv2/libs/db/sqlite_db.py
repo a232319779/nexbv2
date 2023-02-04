@@ -253,4 +253,4 @@ class NextBTradeDB:
         except Exception as e:
             pass
         ratio_sum = round(ratio_sum, 3)
-        return (count, ratio_sum)
+        return (count, ratio_sum, trading_datas[-1].status)
