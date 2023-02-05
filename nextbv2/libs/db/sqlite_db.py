@@ -233,6 +233,7 @@ class NextBTradeDB:
     def get_total_ratio(self, user, last_close_price):
         count = 0
         ratio_sum = 0.0
+        status = 0
         try:
             trading_datas = (
                 self.session_maker.query(NextBTradeTable)
@@ -250,7 +251,9 @@ class NextBTradeDB:
                     ratio_sum = (
                         ratio_sum + last_close_price * td.sell_quantity - td.buy_quote
                     )
+            if trading_datas:
+                status = trading_datas[-1].status
         except Exception as e:
             pass
         ratio_sum = round(ratio_sum, 3)
-        return (count, ratio_sum, trading_datas[-1].status)
+        return (count, ratio_sum, status)
