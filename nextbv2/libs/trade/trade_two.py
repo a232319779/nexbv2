@@ -97,9 +97,9 @@ class TradingStraregyTwo(object):
         """
         已知上次交易的成本为a1，交易数量为b1，交易价格为c1，本次交易成本为a2,交易价格为c2，则交易数量b2=a2/c2。
         那么，结合上次的交易情况，本次的交易卖出价格应该设定为多少，能保证总的收益率达到1.1%。
-        收益率公式为：本次卖出价格x2 * 总的交易数量(b1 + b2) / 总的交易成本(a1 + a2) - 1.0 = 0.11
+        收益率公式为：本次卖出价格x2 * 总的交易数量(b1 + b2) / 总的交易成本(a1 + a2) - 1.0 = 0.011
         本次交易数量b2为： b2 = a2 / c2
-        则x2 = 1.11 * (a1 + a2) / ( b1 + a2 / c2)
+        则x2 = 1.011 * (a1 + a2) / ( b1 + a2 / c2)
         则卖出价格是当前价格的百分比为: r = x2 / c2 - 1.0
         """
         # 上一次的成本
@@ -115,7 +115,7 @@ class TradingStraregyTwo(object):
         buy_quote_total = last_buy_quote + buy_quote
         # 向上取整
         # sell_price = round(buy_price * 1.011 + 0.05, 1)
-        sell_price = round(1.11 * buy_quote_total / quantity_total + 0.05, 1)
+        sell_price = round(1.011 * buy_quote_total / quantity_total + 0.05, 1)
         sell_quote = sell_price * quantity_total
         profit = sell_quote - buy_quote_total
         profit_ratio = profit / buy_quote_total

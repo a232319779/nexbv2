@@ -136,9 +136,11 @@ def simulation(nb_db, user, symbol, trade_datas):
             sell_price = record_data.get("sell_price")
             nb_db.add(record_data)
     count, total_profit, status = nb_db.get_total_ratio(user, float(trade_datas[i][4]))
+    max_quote = nb_db.get_max_quote(user)
+    profit_ratio = round(total_profit / max_quote * 100, 2)
     info(
-        "开始交易时间：{}，共计交易：{}次，共计获利：{}U".format(
-            timestamp_to_time(trade_datas[0][0]), count, total_profit
+        "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，利润率: {}%".format(
+            timestamp_to_time(trade_datas[0][0]), count, total_profit, max_quote, profit_ratio
         )
     )
     return ",".join(
