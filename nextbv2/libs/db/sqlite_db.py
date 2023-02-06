@@ -206,10 +206,8 @@ class NextBTradeDB:
                 .filter(
                     and_(
                         NextBTradeTable.user == user,
-                        NextBTradeTable.status.in_(
-                            [TradeStatus.MERGE.value, TradeStatus.SELLING.value]
-                        ),
-                    )
+                        NextBTradeTable.status == TradeStatus.SELLING.value,
+                    ),
                 )
                 .order_by(NextBTradeTable.id.desc())
                 .all()
