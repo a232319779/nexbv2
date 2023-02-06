@@ -20,6 +20,7 @@ from nextbv2.libs.common.constant import TradeStatus
 
 trading_straregy_name = "trade_one"
 
+
 def parse_cmd():
     """
     数据初始化和更新
@@ -97,6 +98,7 @@ def parse_cmd():
 
     return args
 
+
 def simulation(nb_db, user, symbol, trade_datas):
     data_len = len(trade_datas)
     # 加载交易策略
@@ -125,15 +127,28 @@ def simulation(nb_db, user, symbol, trade_datas):
             timestamp_to_time(trade_datas[0][0]), count, total_profit
         )
     )
-    return ",".join([user, timestamp_to_time(trade_datas[0][0]), str(count), str(total_profit), str(status)])
+    return ",".join(
+        [
+            user,
+            timestamp_to_time(trade_datas[0][0]),
+            str(count),
+            str(total_profit),
+            str(status),
+        ]
+    )
+
 
 def trade_one_auto(nb_db, symbol, trade_datas):
     datas = list()
-    for j in tqdm(range(0, len(trade_datas), 10), unit="user", desc="{}模拟交易中".format(symbol)):
+    for j in tqdm(
+        range(0, len(trade_datas), 10), unit="user", desc="{}模拟交易中".format(symbol)
+    ):
         user = "ddvv_{}".format(j)
         new_trade_datas = trade_datas[j:]
-        datas.append(simulation(nb_db, user, symbol, new_trade_datas))
-    headers = "用户名,交易时间,交易次数,利润值,当前状态"
+        data_str = simulation(nb_db, user, symbol, new_trade_datas)
+        data_str += ",{},{}".format(new_trade_datas[0][1], new_trade_datas[0][4])
+        datas.append(data_str)
+    headers = "用户名,交易时间,交易次数,利润值,当前状态,开盘价,收盘价"
     with open("test.csv", "w", encoding="utf8") as f:
         f.write(headers + "\n")
         f.write("\n".join(datas))
@@ -179,6 +194,6 @@ def run():
         "sqlite": args.sqlite,
         "number": args.number,
         "user": args.user,
-        "auto": args.auto
+        "auto": args.auto,
     }
     trade_func[args.trading_straregy](param)
