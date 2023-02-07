@@ -14,12 +14,23 @@ __doc__ = """
 3. 检查交易状态，如果完成，则开启下一轮，否则继续等待
 """
 
-from nextbv2.libs.common.constant import TradeStatus
+from nextbv2.libs.common.constant import (
+    TradeStatus,
+    CONST_BASE,
+    CONST_CUTDOWN,
+    CONST_PROFIT_RATIO,
+    CONST_FORCE_BUY,
+)
 
 
 class TradingStraregyOne(object):
+    __name__ = "trade_one"
+
     def __init__(self, config):
-        self.config = config
+        self.base = config.get("base", CONST_BASE)
+        self.down = config.get("down", CONST_CUTDOWN)
+        self.profit_ratio = config.get("profit_ratio", CONST_PROFIT_RATIO)
+        self.force_buy = config.get("force_buy", CONST_FORCE_BUY)
 
     def is_buy_time(self, datas):
         """
@@ -27,10 +38,12 @@ class TradingStraregyOne(object):
         参数：datas，原始数据类型，参考NextBSerialize的结构
         返回值：True：买入，False：不买入
         """
-        down_count = self.config.get("down_count", 3)
-        if down_count > len(datas):
+        if self.force_buy:
+            return True
+        if self.down > len(datas):
             return False
-        for i in range(-1, -down_count - 1, -1):
+        # 连续下跌达到指定次数
+        for i in range(-1, -self.down - 1, -1):
             open_price = float(datas[i][1])
             close_price = float(datas[i][4])
             if close_price > open_price:
@@ -39,13 +52,13 @@ class TradingStraregyOne(object):
         return True
 
     def buy(self, data):
-        # 先假设固定买入100U
-        buy_quote = 100.0
+        # 先假设固定买入
+        buy_quote = self.base
         buy_price = float(data[4])
         # 向下取整，买入和卖出的数量就一致了
         quantity = round(buy_quote / buy_price - 0.0005, 3)
         # 向上取整
-        sell_price = round(buy_price * 1.011 + 0.05, 1)
+        sell_price = round(buy_price * (1 + self.profit_ratio) + 0.05, 1)
         sell_quote = sell_price * quantity
         profit = sell_quote - buy_quote
         profit_ratio = profit / buy_quote
@@ -64,7 +77,7 @@ class TradingStraregyOne(object):
             "status": TradeStatus.SELLING.value,
         }
         # to do: 调用币安api实现真正的买入
-        # 
+        #
         # 目前假设买入
         return record_data
 
@@ -75,3 +88,15 @@ class TradingStraregyOne(object):
         if high_price > sell_price:
             return True
         return False
+
+    def is_buy_again(self, current_data, trade_data):
+        """
+        本策略不含此逻辑
+        """
+        return False
+
+    def buy_again(self, data, trade_data):
+        """
+        本策略不含此逻辑
+        """
+        return {}
