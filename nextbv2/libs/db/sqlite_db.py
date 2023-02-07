@@ -18,6 +18,7 @@ __doc__ = """
 """
 
 
+from collections import Counter
 from sqlalchemy import create_engine, Column, String, BigInteger, and_
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
@@ -181,6 +182,9 @@ class NextBTradeDB:
             return False
 
     def status_merge(self, user):
+        """
+        更新交易状态为：合并状态
+        """
         try:
             trading_datas = (
                 self.session_maker.query(NextBTradeTable)
@@ -201,6 +205,9 @@ class NextBTradeDB:
             return False
 
     def status_done(self, user, data):
+        """
+        更新交易状态为：完成状态
+        """
         try:
             trading_datas = (
                 self.session_maker.query(NextBTradeTable)
@@ -214,13 +221,6 @@ class NextBTradeDB:
                 .all()
             )
             for td in trading_datas:
-                # td.sell_price = data.get("sell_price")
-                # td.sell_quantity = data.get("sell_quantity")
-                # td.sell_quote = data.get("sell_quote")
-                # td.sell_time = data.get("sell_time")
-                # td.profit = data.get("profit")
-                # td.profit_ratio = data.get("profit_ratio")
-                # td.status = data.get("status")
                 td.sell_time = timestamp_to_datetime(data.get("sell_time"))
                 td.status = TradeStatus.DONE.value
             # 同步完成才统一提交到数据库
@@ -230,6 +230,10 @@ class NextBTradeDB:
             return False
 
     def get_total_ratio(self, user, last_close_price):
+        """
+        计算总的收益
+        返回值包括：交易次数，总收益，最有一条交易状态
+        """
         count = 0
         ratio_sum = 0.0
         status = 0
@@ -251,13 +255,16 @@ class NextBTradeDB:
                         ratio_sum + last_close_price * td.sell_quantity - td.buy_quote
                     )
             if trading_datas:
-                status = trading_datas[-1].status
+                status = trading_datas[0].status
         except Exception as e:
             pass
         ratio_sum = round(ratio_sum, 3)
         return (count, ratio_sum, status)
 
     def get_max_quote(self, user):
+        """
+        查询最大的交易资金
+        """
         max_quote = 0.0
         try:
             trading_datas = (
@@ -273,3 +280,27 @@ class NextBTradeDB:
         except Exception as e:
             pass
         return max_quote
+
+    def get_quote_use_ratio(self, user):
+        """
+        计算资金利用率
+        返回值：平均资金使用值，资金使用列表
+        """
+        quote_use_ratio_dict = dict()
+        mean_quote = 1.0
+        try:
+            trading_datas = (
+                self.session_maker.query(NextBTradeTable.buy_quote)
+                .filter(
+                    NextBTradeTable.user == user,
+                )
+                .order_by(NextBTradeTable.id.asc())
+                .all()
+            )
+            if trading_datas:
+                quote = [q[0] for q in trading_datas]
+                mean_quote = round(sum(quote) / len(quote), 3)
+                quote_use_ratio_dict = dict(Counter(quote))
+        except Exception as e:
+            pass
+        return mean_quote, quote_use_ratio_dict
