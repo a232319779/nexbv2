@@ -28,7 +28,7 @@ logging.config.fileConfig(log_config)
 logger = logging.getLogger('nextbv2')
 
 # 输出配置文件路径
-logger.info("日志配置文件路径：{}，如有必要请按自己的需求进行修改。".format(log_config))
+logger.debug("日志配置文件路径：{}，如有必要请按自己的需求进行修改。".format(log_config))
 
 def debug(msg):
     """

@@ -28,6 +28,8 @@ def parse_ini_config(file_name):
         # symbols按","分隔
         if key == "symbols":
             config_dict[key] = nexbv2_config[key].split(",")
+        elif key in ["limit", "start_time"]:
+            config_dict[key] = int(nexbv2_config[key])
         else:
             config_dict[key] = nexbv2_config[key]
     

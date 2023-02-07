@@ -6,11 +6,21 @@
 # @Software : Visual Studio Code
 # @WeChat   : NextB
 
-import datetime
+
 import argparse
-import nextbv2.libs.common.constant as nextbv2_constant
-from nextbv2.libs.common.common import parse_ini_config, create_binance, create_serialize
-from nextbv2.libs.logs.logs import *
+from nextbv2.version import NEXTB_V2_VERSION
+from nextbv2.libs.common.constant import (
+    MAX_LIMIT,
+    ONE_HOUR_TIMESTAMP,
+    DEFAULT_START_TIMESTAMP,
+)
+from nextbv2.libs.common.common import (
+    parse_ini_config,
+    create_binance,
+    create_serialize,
+)
+from nextbv2.libs.common.nextb_time import get_now_timestamp, timestamp_to_time
+from nextbv2.libs.logs.logs import info
 
 
 def parse_cmd():
@@ -18,9 +28,9 @@ def parse_cmd():
     数据初始化和更新
     """
     parser = argparse.ArgumentParser(
-        prog="nextbv2-data-process",
-        description="NextBv2下载、更新本地数据集工具。版本号：2.0.0",
-        epilog="使用方式：nextbv2-data-process -c config_file",
+        prog="nextb-v2-data-process",
+        description="NextBv2下载、更新本地数据集工具。版本号：{}".format(NEXTB_V2_VERSION),
+        epilog="使用方式：nextb-v2-data-process -c config_file",
     )
     parser.add_argument(
         "-c",
@@ -35,21 +45,6 @@ def parse_cmd():
     args = parser.parse_args()
 
     return args
-
-
-def calc_update_data_len(update_time_str):
-    """
-    计算从上次更新到当前时间需要更新的数据长度
-    update_time_str：上次更新的时间，str，时间格式如，%Y-%m-%d %H:00:00
-    """
-    if update_time_str == "":
-        return False
-    now_time = datetime.datetime.now()
-    update_time = datetime.datetime.strptime(update_time_str, "%Y-%m-%d %H:00:00")
-    dlt_time = now_time - update_time
-    time_hour = dlt_time.days * 24 + dlt_time.seconds // 3600
-
-    return time_hour
 
 
 def data_process(config_file):
@@ -75,23 +70,34 @@ def data_process(config_file):
     # 读取本地数据中已有的币种及更新信息
     local_symbol_info = nextb_serialize.get_symbol_info()
     for symbol in symbols:
-        # 默认获取最近500条数据
-        limit = nextbv2_constant.MAX_LIMIT
+        # 默认获取最大1000条数据
+        limit = config.get("limit", MAX_LIMIT)
+        # 默认从2022.01.01 00:00:00开始获取
+        startTime = config.get("start_time", DEFAULT_START_TIMESTAMP)
         # 如果是更新，则计算需要更新的数据量
-        if symbol in local_symbol_info.keys():
+        if symbol in local_symbol_info:
+            # 当前时间和数据集最后一条数据时间间隔小于1个小时，则不进行更新
+            now_timestamp = get_now_timestamp()
             # 计算需要获取的数据量
-            limit = calc_update_data_len(local_symbol_info[symbol])
-        if limit == 1:
-            info(
-                "币种-{}当前为最新数据，上次更新时间：{}，本次不用更新。".format(
-                    symbol, local_symbol_info[symbol]
+            startTime = nextb_serialize.get_last_data_timestamp(symbol)
+            if now_timestamp - startTime < 2 * ONE_HOUR_TIMESTAMP:
+                info(
+                    "{}数据已为最新数据集，无需更新，最新时间：{}".format(
+                        symbol, timestamp_to_time(startTime)
+                    )
                 )
-            )
-            continue
+                continue
+        # 从数据集的下一个时间节点开始获取数据
+        startTime += 1
         # 从接口获取数据
-        datas = nextb_binance.get_klines(
-            symbol=symbol, interval=klines_interval, limit=limit
-        )
+        param = {
+            "symbol": symbol,
+            "interval": klines_interval,
+            "limit": limit,
+            "startTime": startTime,
+            "endtTime": None,
+        }
+        datas = nextb_binance.get_klines(param)
         if datas:
             nextb_serialize.update_datas(symbol=symbol, datas=datas)
     # 保存更新结果

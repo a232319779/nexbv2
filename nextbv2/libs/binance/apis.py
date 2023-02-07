@@ -73,9 +73,14 @@ class NextBBinance(object):
         info("查询币种-{}的信息。".format(symbol))
         return self.client.get_symbol_info(symbol=symbol)
 
-    def get_klines(self, symbol, interval=Client.KLINE_INTERVAL_1HOUR, limit=500):
+    def get_klines(self, param):
         """
         从币安API接口，返回指定币种的K线图
+        :symbol: 币种名称, 字符串, 必填
+        :interval: K线类型, 字符串
+        :limit: 单次返回数据长度, 整数, 最大默认1000条
+        :startTime: 查询起始时间, 时间戳类型
+        :endTime: 查询结束时间, 时间戳类型
         返回值格式：
         [
             [
@@ -95,8 +100,19 @@ class NextBBinance(object):
         ]
         """
         try:
+            r_param = {
+                "symbol": param.get("symbol", ""),
+                "interval": param.get("interval", Client.KLINE_INTERVAL_1HOUR),
+                "limit": param.get("limit", 1000),
+                "startTime": param.get("startTime", None),
+                "endtTime": param.get("endtTime", None),
+            }
+            symbol = r_param.get("symbol")
+            if symbol == "":
+                error("获取币种-{}K线数据失败，失败原因：{}".format(symbol, "未指定币种信息。"))
+                return None
             info("获取币种-{}的K线数据。".format(symbol))
-            return self.client.get_klines(symbol=symbol, interval=interval, limit=limit)
+            return self.client.get_klines(**r_param)
         except Exception as e:
             error("获取币种-{}K线数据失败，失败原因：{}".format(symbol, str(e)))
             return None
