@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time     : 2023/02/03 17:06:10
+# @Time     : 2023/02/06 16:29:24
 # @Author   : ddvv
 # @Site     : https://ddvvmmzz.github.io
 # @File     : cli_trade_simulation.py
@@ -8,6 +8,7 @@
 
 
 import argparse
+import json
 from tqdm import tqdm
 from nextbv2.version import NEXTB_V2_VERSION
 from nextbv2.libs.common.constant import *
@@ -15,10 +16,9 @@ from nextbv2.libs.logs.logs import info
 from nextbv2.libs.common.common import create_serialize
 from nextbv2.libs.common.nextb_time import timestamp_to_time
 from nextbv2.libs.trade.trade_one import TradingStraregyOne
+from nextbv2.libs.trade.trade_two import TradingStraregyTwo
 from nextbv2.libs.db.sqlite_db import NextBTradeDB
-from nextbv2.libs.common.constant import TradeStatus
-
-trading_straregy_name = "trade_one"
+from nextbv2.libs.common.constant import TradeStatus, MAX_PRICE, CONST_BASE
 
 
 def parse_cmd():
@@ -33,11 +33,11 @@ def parse_cmd():
     parser.add_argument(
         "-t",
         "--trading-straregy",
-        help="交易策略名称，当前支持[trade_one]，默认值：trade_one",
+        help="交易策略名称，当前支持[trade_one, trade_two]，默认值：trade_two",
         type=str,
         dest="trading_straregy",
         action="store",
-        default="trade_one",
+        default="trade_two",
     )
     parser.add_argument(
         "-d",
@@ -78,11 +78,11 @@ def parse_cmd():
     parser.add_argument(
         "-u",
         "--user",
-        help="指定用户名称。默认值为：ddvv",
+        help="指定用户名称。默认值为：nextb",
         type=str,
         dest="user",
         action="store",
-        default="ddvv",
+        default="nextb",
     )
     parser.add_argument(
         "-a",
@@ -93,38 +93,86 @@ def parse_cmd():
         action="store",
         default=0,
     )
+    parser.add_argument(
+        "-tc",
+        "--trade_config",
+        help="指定交易参数配置文件，默认为空，使用默认参数配置。",
+        type=str,
+        dest="trade_config",
+        action="store",
+        default="",
+    )
 
     args = parser.parse_args()
 
     return args
 
 
-def simulation(nb_db, user, symbol, trade_datas):
+def get_config(file_name):
+    if file_name:
+        with open(file_name, "r", encoding="utf8") as f:
+            data = f.read()
+            return json.loads(data)
+    else:
+        config = {
+            "base": 100.0,
+            "down": 1,
+            "decline": 0.03,
+            "magnification": 1.0,
+            "max_quote": 1500,
+            "profit_ratio": 0.013,
+            "force_buy": False,
+        }
+        return config
+
+
+def simulation(ts, nb_db, user, symbol, trade_datas):
     data_len = len(trade_datas)
-    # 加载交易策略
-    config = {"down_count": 3}
-    ts = TradingStraregyOne(config)
-    sell_price = 9999999.9
-    for i in tqdm(range(0, data_len), unit="row", desc="{}模拟中".format(user)):
+    sell_price = MAX_PRICE
+    for i in tqdm(range(0, data_len), unit="row", desc="用户{}模拟中".format(user)):
         iter_datas = trade_datas[: i + 1]
         high_price = float(trade_datas[i][2])
+        last_trade_one = nb_db.get_last_one(user)
+        status = TradeStatus.UNKNOWN.value
+        if last_trade_one:
+            status = last_trade_one.status
         if ts.is_sell(sell_price, high_price):
-            sell_price = 9999999.9
+            sell_price = MAX_PRICE
             sell_data = {"sell_time": trade_datas[i][0]}
             nb_db.status_done(user, sell_data)
-        if nb_db.get_last_one_record_status(user) == TradeStatus.SELLING.value:
+        if status == TradeStatus.SELLING.value:
+            # 是否需要补仓
+            if ts.is_buy_again(trade_datas[i], last_trade_one):
+                record_data = ts.buy_again(trade_datas[i], last_trade_one)
+                if record_data:
+                    # 取消当前订单
+                    nb_db.status_merge(user)
+                    record_data["user"] = user
+                    record_data["trading_straregy_name"] = ts.__name__
+                    record_data["symbol"] = symbol
+                    sell_price = record_data.get("sell_price")
+                    nb_db.add(record_data)
+                else:
+                    quote = last_trade_one.buy_quote
+                    info("当前交易额：{}U，已超过最大本金：{}".format(quote, quote + CONST_BASE))
             continue
         if ts.is_buy_time(iter_datas):
             record_data = ts.buy(trade_datas[i])
             record_data["user"] = user
-            record_data["trading_straregy_name"] = trading_straregy_name
+            record_data["trading_straregy_name"] = ts.__name__
             record_data["symbol"] = symbol
             sell_price = record_data.get("sell_price")
             nb_db.add(record_data)
     count, total_profit, status = nb_db.get_total_ratio(user, float(trade_datas[i][4]))
+    max_quote = nb_db.get_max_quote(user)
+    profit_ratio = round(total_profit / max_quote * 100, 2)
     info(
-        "开始交易时间：{}，共计交易：{}次，共计获利：{}U".format(
-            timestamp_to_time(trade_datas[0][0]), count, total_profit
+        "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，利润率: {}%".format(
+            timestamp_to_time(trade_datas[0][0]),
+            count,
+            total_profit,
+            max_quote,
+            profit_ratio,
         )
     )
     return ",".join(
@@ -138,14 +186,14 @@ def simulation(nb_db, user, symbol, trade_datas):
     )
 
 
-def trade_one_auto(nb_db, symbol, trade_datas):
+def auto_simulation(ts, nb_db, symbol, trade_datas):
     datas = list()
     for j in tqdm(
         range(0, len(trade_datas), 10), unit="user", desc="{}模拟交易中".format(symbol)
     ):
-        user = "ddvv_{}".format(j)
+        user = "nextb_{}".format(j)
         new_trade_datas = trade_datas[j:]
-        data_str = simulation(nb_db, user, symbol, new_trade_datas)
+        data_str = simulation(ts, nb_db, user, symbol, new_trade_datas)
         data_str += ",{},{}".format(new_trade_datas[0][1], new_trade_datas[0][4])
         datas.append(data_str)
     headers = "用户名,交易时间,交易次数,利润值,当前状态,开盘价,收盘价"
@@ -154,13 +202,15 @@ def trade_one_auto(nb_db, symbol, trade_datas):
         f.write("\n".join(datas))
 
 
-def trade_one(param):
+def trade(param):
     serialize_data = param.get("serialize_data")
     symbol = param.get("symbol")
     auto = param.get("auto")
     sqlite_path = param.get("sqlite")
     number = param.get("number")
     user = param.get("user")
+    trading_straregy = param.get("trading_straregy")
+    trade_config = param.get("trade_config")
     # 创建数据库
     nb_db = NextBTradeDB(sqlite_path)
     nb_db.create_table()
@@ -170,16 +220,29 @@ def trade_one(param):
     nextbv2_serialize.load_datas()
     s_datas = nextbv2_serialize.get_datas()
     trade_datas = s_datas.get(symbol)
+    # 加载交易配置
+    config = get_config(trade_config)
+    # 加载对应交易策略
+    ts = trade_func[trading_straregy](config)
     if number != 0:
         trade_datas = trade_datas[-number:]
     if auto:
-        trade_one_auto(nb_db, symbol, trade_datas)
+        auto_simulation(ts, nb_db, symbol, trade_datas)
     else:
-        simulation(nb_db, user, symbol, trade_datas)
+        simulation(ts, nb_db, user, symbol, trade_datas)
+
+
+def get_trade_one_ts(config):
+    return TradingStraregyOne(config)
+
+
+def get_trade_two_ts(config):
+    return TradingStraregyTwo(config)
 
 
 trade_func = {
-    "trade_one": trade_one,
+    "trade_one": get_trade_one_ts,
+    "trade_two": get_trade_two_ts,
 }
 
 
@@ -195,5 +258,7 @@ def run():
         "number": args.number,
         "user": args.user,
         "auto": args.auto,
+        "trading_straregy": args.trading_straregy,
+        "trade_config": args.trade_config,
     }
-    trade_func[args.trading_straregy](param)
+    trade(param)

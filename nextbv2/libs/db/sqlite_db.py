@@ -21,6 +21,7 @@ __doc__ = """
 from sqlalchemy import create_engine, Column, String, BigInteger, and_
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
 from sqlalchemy.sql.sqltypes import DateTime, Integer, Float
 from nextbv2.libs.common.constant import TradeStatus
 from nextbv2.libs.common.nextb_time import timestamp_to_datetime
@@ -206,10 +207,8 @@ class NextBTradeDB:
                 .filter(
                     and_(
                         NextBTradeTable.user == user,
-                        NextBTradeTable.status.in_(
-                            [TradeStatus.MERGE.value, TradeStatus.SELLING.value]
-                        ),
-                    )
+                        NextBTradeTable.status == TradeStatus.SELLING.value,
+                    ),
                 )
                 .order_by(NextBTradeTable.id.desc())
                 .all()
@@ -257,3 +256,20 @@ class NextBTradeDB:
             pass
         ratio_sum = round(ratio_sum, 3)
         return (count, ratio_sum, status)
+
+    def get_max_quote(self, user):
+        max_quote = 0.0
+        try:
+            trading_datas = (
+                self.session_maker.query(func.max(NextBTradeTable.buy_quote))
+                .filter(
+                    NextBTradeTable.user == user,
+                )
+                .order_by(NextBTradeTable.id.desc())
+                .first()
+            )
+            if trading_datas:
+                max_quote = trading_datas[0]
+        except Exception as e:
+            pass
+        return max_quote
