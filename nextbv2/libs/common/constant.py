@@ -30,6 +30,45 @@ CONST_CUTDOWN = 1
 CONST_MAX_QUOTE = 1500
 CONST_FORCE_BUY = False
 
+SYMBOL_CALC_CONFIG = {
+    "BNBUSDT": {
+        "quantity_accuracy": 3,
+        "quantity_offset": 0.0005,
+        "price_accuracy": 1,
+        "price_offset": 0.05,
+    },
+    "CAKEUSDT": {
+        "quantity_accuracy": 2,
+        "quantity_offset": 0.005,
+        "price_accuracy": 3,
+        "price_offset": 0.0005,
+    },
+    "BSWUSDT": {
+        "quantity_accuracy": 2,
+        "quantity_offset": 0.005,
+        "price_accuracy": 4,
+        "price_offset": 0.00005,
+    },
+    "HIGHUSDT": {
+        "quantity_accuracy": 3,
+        "quantity_offset": 0.0005,
+        "price_accuracy": 3,
+        "price_offset": 0.0005,
+    },
+    "DOGEUSDT": {
+        "quantity_accuracy": 0,
+        "quantity_offset": 0.5,
+        "price_accuracy": 5,
+        "price_offset": 0.000005,
+    },
+    "HOOKUSDT": {
+        "quantity_accuracy": 1,
+        "quantity_offset": 0.05,
+        "price_accuracy": 4,
+        "price_offset": 0.00005,
+    },
+}
+
 
 class TradeStatus(Enum):
     UNKNOWN = -1
