@@ -18,7 +18,12 @@ from nextbv2.libs.common.nextb_time import timestamp_to_time
 from nextbv2.libs.trade.trade_one import TradingStraregyOne
 from nextbv2.libs.trade.trade_two import TradingStraregyTwo
 from nextbv2.libs.db.sqlite_db import NextBTradeDB
-from nextbv2.libs.common.constant import TradeStatus, MAX_PRICE, CONST_BASE
+from nextbv2.libs.common.constant import (
+    TradeStatus,
+    BinanceDataFormat,
+    MAX_PRICE,
+    CONST_BASE,
+)
 
 
 def parse_cmd():
@@ -131,14 +136,14 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
     sell_price = MAX_PRICE
     for i in tqdm(range(0, data_len), unit="row", desc="用户{}模拟中".format(user)):
         iter_datas = trade_datas[: i + 1]
-        high_price = float(trade_datas[i][2])
+        high_price = float(trade_datas[i][BinanceDataFormat.HIGH_PRICE])
         last_trade_one = nb_db.get_last_one(user)
         status = TradeStatus.UNKNOWN.value
         if last_trade_one:
             status = last_trade_one.status
         if ts.is_sell(sell_price, high_price):
             sell_price = MAX_PRICE
-            sell_data = {"sell_time": trade_datas[i][0]}
+            sell_data = {"sell_time": trade_datas[i][BinanceDataFormat.OPEN_TIME]}
             nb_db.status_done(user, sell_data)
         if status == TradeStatus.SELLING.value:
             # 是否需要补仓
@@ -163,12 +168,14 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
             record_data["symbol"] = symbol
             sell_price = record_data.get("sell_price")
             nb_db.add(record_data)
-    count, total_profit, status = nb_db.get_total_ratio(user, float(trade_datas[i][4]))
+    count, total_profit, status = nb_db.get_total_ratio(
+        user, float(trade_datas[i][BinanceDataFormat.CLOSE_PRICE])
+    )
     max_quote = nb_db.get_max_quote(user)
     profit_ratio = round(total_profit / max_quote * 100, 2)
     info(
         "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，利润率: {}%".format(
-            timestamp_to_time(trade_datas[0][0]),
+            timestamp_to_time(trade_datas[0][BinanceDataFormat.OPEN_TIME]),
             count,
             total_profit,
             max_quote,
@@ -178,7 +185,7 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
     return ",".join(
         [
             user,
-            timestamp_to_time(trade_datas[0][0]),
+            timestamp_to_time(trade_datas[0][BinanceDataFormat.OPEN_TIME]),
             str(count),
             str(total_profit),
             str(status),
@@ -194,7 +201,10 @@ def auto_simulation(ts, nb_db, symbol, trade_datas):
         user = "nextb_{}".format(j)
         new_trade_datas = trade_datas[j:]
         data_str = simulation(ts, nb_db, user, symbol, new_trade_datas)
-        data_str += ",{},{}".format(new_trade_datas[0][1], new_trade_datas[0][4])
+        data_str += ",{},{}".format(
+            new_trade_datas[0][BinanceDataFormat.OPEN_PRICE],
+            new_trade_datas[0][BinanceDataFormat.CLOSE_PRICE],
+        )
         datas.append(data_str)
     headers = "用户名,交易时间,交易次数,利润值,当前状态,开盘价,收盘价"
     with open("test.csv", "w", encoding="utf8") as f:

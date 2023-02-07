@@ -16,6 +16,7 @@ __doc__ = """
 
 from nextbv2.libs.common.constant import (
     TradeStatus,
+    BinanceDataFormat,
     CONST_BASE,
     CONST_CUTDOWN,
     CONST_PROFIT_RATIO,
@@ -44,8 +45,8 @@ class TradingStraregyOne(object):
             return False
         # 连续下跌达到指定次数
         for i in range(-1, -self.down - 1, -1):
-            open_price = float(datas[i][1])
-            close_price = float(datas[i][4])
+            open_price = float(datas[i][BinanceDataFormat.OPEN_PRICE])
+            close_price = float(datas[i][BinanceDataFormat.CLOSE_PRICE])
             if close_price > open_price:
                 return False
 
@@ -54,7 +55,7 @@ class TradingStraregyOne(object):
     def buy(self, data):
         # 先假设固定买入
         buy_quote = self.base
-        buy_price = float(data[4])
+        buy_price = float(data[BinanceDataFormat.CLOSE_PRICE])
         # 向下取整，买入和卖出的数量就一致了
         quantity = round(buy_quote / buy_price - 0.0005, 3)
         # 向上取整
@@ -67,11 +68,11 @@ class TradingStraregyOne(object):
             "buy_price": buy_price,
             "buy_quantity": quantity,
             "buy_quote": buy_quote,
-            "buy_time": data[0],
+            "buy_time": data[BinanceDataFormat.OPEN_TIME],
             "sell_price": sell_price,
             "sell_quantity": quantity,
             "sell_quote": sell_quote,
-            "sell_time": data[0],
+            "sell_time": data[BinanceDataFormat.OPEN_TIME],
             "profit": sell_quote - buy_quote,
             "profit_ratio": profit_ratio,
             "status": TradeStatus.SELLING.value,

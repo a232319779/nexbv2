@@ -16,7 +16,7 @@ import os
 import pickle
 from nextbv2.libs.logs.logs import *
 from nextbv2.libs.common.nextb_time import timestamp_to_time, get_now_timestamp
-from nextbv2.libs.common.constant import ONE_HOUR_TIMESTAMP
+from nextbv2.libs.common.constant import ONE_HOUR_TIMESTAMP, BinanceDataFormat
 
 
 class NextBSerialize(object):
@@ -96,8 +96,8 @@ class NextBSerialize(object):
             return False
         # 已包含指定币种数据，则直接追加更新
         if symbol in self.datas.keys():
-            last_dataset_timestamp = self.datas[symbol][-1][0]
-            first_data_timestamp = datas[0][0]
+            last_dataset_timestamp = self.datas[symbol][-1][BinanceDataFormat.OPEN_TIME]
+            first_data_timestamp = datas[0][BinanceDataFormat.OPEN_TIME]
             # 数据集中的最后一条数据与更新数据集数据时间间隔大于1个小时，则表示数据不连续，不进行更新
             if first_data_timestamp - last_dataset_timestamp > ONE_HOUR_TIMESTAMP:
                 error(
@@ -108,7 +108,7 @@ class NextBSerialize(object):
                 )
                 return False
             # 更新数据集最后一条数据与当前时间间隔小于一小时，则删除最后一条数据
-            last_data_timestamp = datas[-1][0]
+            last_data_timestamp = datas[-1][BinanceDataFormat.OPEN_TIME]
             now_timestamp = get_now_timestamp()
             if now_timestamp - last_data_timestamp < ONE_HOUR_TIMESTAMP:
                 del datas[-1]
@@ -116,7 +116,9 @@ class NextBSerialize(object):
             self.datas[symbol].extend(datas)
             info(
                 "更新序列化数据成功，币种-{}新增{}条数据，交易数据已新至: {}".format(
-                    symbol, len(datas), timestamp_to_time(datas[-1][0])
+                    symbol,
+                    len(datas),
+                    timestamp_to_time(datas[-1][BinanceDataFormat.OPEN_TIME]),
                 )
             )
         else:
@@ -124,7 +126,9 @@ class NextBSerialize(object):
             self.datas[symbol].extend(datas)
             info(
                 "更新序列化数据成功，新增币种：{}，新增数据数量：{}，交易数据已新至: {}".format(
-                    symbol, len(datas), timestamp_to_time(datas[-1][0])
+                    symbol,
+                    len(datas),
+                    timestamp_to_time(datas[-1][BinanceDataFormat.OPEN_TIME]),
                 )
             )
 
@@ -144,4 +148,4 @@ class NextBSerialize(object):
         return self.datas
 
     def get_last_data_timestamp(self, symbol):
-        return self.datas[symbol][-1][0]
+        return self.datas[symbol][-1][BinanceDataFormat.OPEN_TIME]
