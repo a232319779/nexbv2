@@ -77,7 +77,6 @@ class TradingStraregyOne(object):
         profit = sell_quote - buy_quote
         profit_ratio = round(profit / buy_quote, 3)
         record_data = {
-            "order_id": 1234,
             "buy_price": buy_price,
             "buy_quantity": quantity,
             "buy_quote": buy_quote,

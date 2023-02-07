@@ -155,6 +155,7 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
                     nb_db.status_merge(user)
                     record_data["user"] = user
                     record_data["trading_straregy_name"] = ts.__name__
+                    record_data["order_id"] = 1234
                     record_data["symbol"] = symbol
                     sell_price = record_data.get("sell_price")
                     nb_db.add(record_data)
@@ -166,6 +167,7 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
             record_data = ts.buy(trade_datas[i])
             record_data["user"] = user
             record_data["trading_straregy_name"] = ts.__name__
+            record_data["order_id"] = 1234
             record_data["symbol"] = symbol
             sell_price = record_data.get("sell_price")
             nb_db.add(record_data)

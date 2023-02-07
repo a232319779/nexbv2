@@ -105,7 +105,6 @@ class TradingStraregyTwo(object):
         profit = sell_quote - buy_quote
         profit_ratio = round(profit / buy_quote, 3)
         record_data = {
-            "order_id": 1234,
             "buy_price": buy_price,
             "buy_quantity": quantity,
             "buy_quote": buy_quote,
@@ -170,7 +169,6 @@ class TradingStraregyTwo(object):
         profit = sell_quote - buy_quote_total
         profit_ratio = round(profit / buy_quote_total, 3)
         record_data = {
-            "order_id": 1234,
             "buy_price": buy_price,
             "buy_quantity": quantity_total,
             "buy_quote": buy_quote_total,
