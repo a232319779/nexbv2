@@ -120,11 +120,12 @@ def get_config(file_name):
             return json.loads(data)
     else:
         config = {
+            "symbol": "BNBUSDT",
             "base": 100.0,
             "down": 1,
             "decline": 0.03,
             "magnification": 1.0,
-            "max_quote": 1500,
+            "max_quote": 15000,
             "profit_ratio": 0.013,
             "force_buy": False,
         }
@@ -248,6 +249,7 @@ def trade(param):
     trade_datas = s_datas.get(symbol)
     # 加载交易配置
     config = get_config(trade_config)
+    config["symbol"] = symbol
     # 加载对应交易策略
     ts = trade_func[trading_straregy](config)
     if number != 0:

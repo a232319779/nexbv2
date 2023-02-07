@@ -28,6 +28,7 @@ from nextbv2.libs.common.constant import (
     CONST_MAX_QUOTE,
     CONST_PROFIT_RATIO,
     CONST_FORCE_BUY,
+    SYMBOL_CALC_CONFIG,
 )
 
 
@@ -35,6 +36,8 @@ class TradingStraregyTwo(object):
     __name__ = "trade_two"
 
     def __init__(self, config):
+        # 默认精确度
+        self.symbol = config.get("symbol", "BNBUSDT")
         self.base = config.get("base", CONST_BASE)
         self.down = config.get("down", CONST_CUTDOWN)
         self.decline = config.get("decline", CONST_DECLINE)
@@ -75,22 +78,32 @@ class TradingStraregyTwo(object):
         last_buy_price = trade_data.buy_price
         close_price = float(current_data[BinanceDataFormat.CLOSE_PRICE])
         ratio = round(1.0 - close_price / last_buy_price, 4)
-        # 跌幅大于5%
+        # 跌幅大于指定阈值
         if ratio > self.decline:
             return True
         return False
 
     def buy(self, data):
+        # 获取交易币种的精确度信息等
+        symbol_trade_config = SYMBOL_CALC_CONFIG.get(self.symbol)
+        if symbol_trade_config is None:
+            symbol_trade_config = SYMBOL_CALC_CONFIG.get("BNBUSDT")
+        quantity_accuracy = symbol_trade_config["quantity_accuracy"]
+        quantity_offset = symbol_trade_config["quantity_offset"]
+        price_accuracy = symbol_trade_config["price_accuracy"]
+        price_offset = symbol_trade_config["price_offset"]
         # 先假设固定买入
         buy_quote = self.base
         buy_price = float(data[BinanceDataFormat.CLOSE_PRICE])
         # 向下取整，买入和卖出的数量就一致了
-        quantity = round(buy_quote / buy_price - 0.0005, 3)
+        quantity = round(buy_quote / buy_price - quantity_offset, quantity_accuracy)
         # 向上取整
-        sell_price = round(buy_price * (1 + self.profit_ratio) + 0.05, 1)
-        sell_quote = sell_price * quantity
+        sell_price = round(
+            buy_price * (1 + self.profit_ratio) + price_offset, price_accuracy
+        )
+        sell_quote = round(sell_price * quantity, 2)
         profit = sell_quote - buy_quote
-        profit_ratio = profit / buy_quote
+        profit_ratio = round(profit / buy_quote, 3)
         record_data = {
             "order_id": 1234,
             "buy_price": buy_price,
@@ -127,6 +140,14 @@ class TradingStraregyTwo(object):
         则x2 = 1.011 * (a1 + a2) / ( b1 + a2 / c2)
         则卖出价格是当前价格的百分比为: r = x2 / c2 - 1.0
         """
+        # 获取交易币种的精确度信息等
+        symbol_trade_config = SYMBOL_CALC_CONFIG.get(self.symbol)
+        if symbol_trade_config is None:
+            symbol_trade_config = SYMBOL_CALC_CONFIG.get("BNBUSDT")
+        quantity_accuracy = symbol_trade_config["quantity_accuracy"]
+        quantity_offset = symbol_trade_config["quantity_offset"]
+        price_accuracy = symbol_trade_config["price_accuracy"]
+        price_offset = symbol_trade_config["price_offset"]
         # 上一次的成本
         last_buy_quote = trade_data.buy_quote
         # 上一次的数量
@@ -135,19 +156,19 @@ class TradingStraregyTwo(object):
         buy_quote = self.base * self.magnification
         buy_price = float(data[BinanceDataFormat.CLOSE_PRICE])
         # 向下取整，买入和卖出的数量就一致了
-        quantity = round(buy_quote / buy_price - 0.0005, 3)
+        quantity = round(buy_quote / buy_price - quantity_offset, quantity_accuracy)
         quantity_total = last_buy_quantity + quantity
         buy_quote_total = last_buy_quote + buy_quote
         if buy_quote_total > self.max_quote:
             return {}
         # 向上取整
-        # sell_price = round(buy_price * 1.011 + 0.05, 1)
         sell_price = round(
-            (1 + self.profit_ratio) * buy_quote_total / quantity_total + 0.05, 1
+            (1 + self.profit_ratio) * buy_quote_total / quantity_total + price_offset,
+            price_accuracy,
         )
-        sell_quote = sell_price * quantity_total
+        sell_quote = round(sell_price * quantity_total, 2)
         profit = sell_quote - buy_quote_total
-        profit_ratio = profit / buy_quote_total
+        profit_ratio = round(profit / buy_quote_total, 3)
         record_data = {
             "order_id": 1234,
             "buy_price": buy_price,

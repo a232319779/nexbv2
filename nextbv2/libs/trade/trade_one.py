@@ -21,6 +21,7 @@ from nextbv2.libs.common.constant import (
     CONST_CUTDOWN,
     CONST_PROFIT_RATIO,
     CONST_FORCE_BUY,
+    SYMBOL_CALC_CONFIG,
 )
 
 
@@ -28,6 +29,8 @@ class TradingStraregyOne(object):
     __name__ = "trade_one"
 
     def __init__(self, config):
+        # 默认精确度
+        self.symbol = config.get("symbol", "BNBUSDT")
         self.base = config.get("base", CONST_BASE)
         self.down = config.get("down", CONST_CUTDOWN)
         self.profit_ratio = config.get("profit_ratio", CONST_PROFIT_RATIO)
@@ -53,16 +56,26 @@ class TradingStraregyOne(object):
         return True
 
     def buy(self, data):
+        # 获取交易币种的精确度信息等
+        symbol_trade_config = SYMBOL_CALC_CONFIG.get(self.symbol)
+        if symbol_trade_config is None:
+            symbol_trade_config = SYMBOL_CALC_CONFIG.get("BNBUSDT")
+        quantity_accuracy = symbol_trade_config["quantity_accuracy"]
+        quantity_offset = symbol_trade_config["quantity_offset"]
+        price_accuracy = symbol_trade_config["price_accuracy"]
+        price_offset = symbol_trade_config["price_offset"]
         # 先假设固定买入
         buy_quote = self.base
         buy_price = float(data[BinanceDataFormat.CLOSE_PRICE])
         # 向下取整，买入和卖出的数量就一致了
-        quantity = round(buy_quote / buy_price - 0.0005, 3)
+        quantity = round(buy_quote / buy_price - quantity_offset, quantity_accuracy)
         # 向上取整
-        sell_price = round(buy_price * (1 + self.profit_ratio) + 0.05, 1)
-        sell_quote = sell_price * quantity
+        sell_price = round(
+            buy_price * (1 + self.profit_ratio) + price_offset, price_accuracy
+        )
+        sell_quote = round(sell_price * quantity, 2)
         profit = sell_quote - buy_quote
-        profit_ratio = profit / buy_quote
+        profit_ratio = round(profit / buy_quote, 3)
         record_data = {
             "order_id": 1234,
             "buy_price": buy_price,
