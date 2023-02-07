@@ -172,16 +172,32 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
         user, float(trade_datas[i][BinanceDataFormat.CLOSE_PRICE])
     )
     max_quote = nb_db.get_max_quote(user)
-    profit_ratio = round(total_profit / max_quote * 100, 2)
+    mean_quote, quote_ratio = nb_db.get_quote_use_ratio(user)
+    profit_ratio = round(total_profit / mean_quote * 100, 2)
+    status_str = "未知状态"
+    if status == TradeStatus.SELLING.value:
+        status_str = "卖出中"
+    elif status == TradeStatus.MERGE.value:
+        status_str = "已合并"
+    elif status == TradeStatus.DONE.value:
+        status_str = "空仓中"
     info(
-        "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，利润率: {}%".format(
+        "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，平均投入成本：{}U，利润率: {}%, 当前交易状态: {}".format(
             timestamp_to_time(trade_datas[0][BinanceDataFormat.OPEN_TIME]),
             count,
             total_profit,
             max_quote,
+            mean_quote,
             profit_ratio,
+            status_str,
         )
     )
+    qc_list = list()
+    c_total = sum(quote_ratio.values())
+    for q, c in quote_ratio.items():
+        c_ratio = round(c / c_total * 100, 2)
+        qc_list.append("{}U: {}次-{}%".format(q, c, c_ratio))
+    info("资金使用情况如下：{}".format(",".join(qc_list)))
     return ",".join(
         [
             user,
