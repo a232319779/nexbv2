@@ -11,7 +11,7 @@ import argparse
 from tqdm import tqdm
 import numpy as np
 from nextbv2.version import NEXTB_V2_VERSION
-from nextbv2.libs.common.constant import *
+from nextbv2.libs.common.constant import BinanceDataFormat
 from nextbv2.libs.common.common import create_serialize
 from nextbv2.libs.common.nextb_time import timestamp_to_time
 from nextbv2.libs.logs.logs import info
@@ -97,16 +97,20 @@ def statics_show(param):
     for key, value in datas.items():
         for i in range(0, number):
             data = value[-1 - i]
-            update_time = timestamp_to_time(data[0])
-            open_price = float(data[1])
-            high_price = float(data[2])
-            low_price = float(data[3])
-            close_price = float(data[4])
+            update_time = timestamp_to_time(data[BinanceDataFormat.OPEN_TIME])
+            open_price = float(data[BinanceDataFormat.OPEN_PRICE])
+            high_price = float(data[BinanceDataFormat.HIGH_PRICE])
+            low_price = float(data[BinanceDataFormat.LOW_PRICE])
+            close_price = float(data[BinanceDataFormat.CLOSE_PRICE])
             amplitude_A = (high_price - low_price) / low_price * 100.0
             amplitude_B = (close_price - open_price) / close_price * 100.0
             info(
                 "{},{},{},{},{}".format(
-                    key, update_time, data[4], amplitude_A, amplitude_B
+                    key,
+                    update_time,
+                    data[BinanceDataFormat.CLOSE_PRICE],
+                    amplitude_A,
+                    amplitude_B,
                 )
             )
 
@@ -124,9 +128,9 @@ def statics_mean(param):
         close_sum = 0.0
         for i in range(0, number):
             data = value[-1 - i]
-            high_sum += float(data[2])
-            low_sum += float(data[3])
-            close_sum += float(data[4])
+            high_sum += float(data[BinanceDataFormat.HIGH_PRICE])
+            low_sum += float(data[BinanceDataFormat.LOW_PRICE])
+            close_sum += float(data[BinanceDataFormat.CLOSE_PRICE])
         info(
             "{},{},{},{}".format(
                 key,
@@ -144,10 +148,14 @@ def cosine_similarity(param):
     nextbv2_serialize = create_serialize(serialize_data)
     nextbv2_serialize.load_datas()
     datas = nextbv2_serialize.get_datas()
-    base_symbol_data = [float(d[4]) for d in datas[base_symbol][-number:]]
+    base_symbol_data = [
+        float(d[BinanceDataFormat.CLOSE_PRICE]) for d in datas[base_symbol][-number:]
+    ]
     base_vec = np.array([d for d in base_symbol_data])
     for symbol, data in datas.items():
-        match_symbol_data = [float(d[4]) for d in data[-number:]]
+        match_symbol_data = [
+            float(d[BinanceDataFormat.CLOSE_PRICE]) for d in data[-number:]
+        ]
         match_vec = np.array([d for d in match_symbol_data])
         cos_sim = np.dot(base_vec, match_vec) / (
             np.linalg.norm(base_vec) * np.linalg.norm(match_vec)
@@ -169,27 +177,28 @@ def gen_analyse_csv_file(param):
     rows = list()
     for symbol in datas.keys():
         for d in tqdm(datas[symbol][-number:], unit="row", desc="{}分析中".format(symbol)):
-            open_price = float(d[1])
-            high_price = float(d[2])
-            low_price = float(d[3])
-            close_price = float(d[4])
+            open_price = float(d[BinanceDataFormat.OPEN_PRICE])
+            high_price = float(d[BinanceDataFormat.HIGH_PRICE])
+            low_price = float(d[BinanceDataFormat.LOW_PRICE])
+            close_price = float(d[BinanceDataFormat.CLOSE_PRICE])
             row = list()
             row.append(symbol)
-            row.append(timestamp_to_time(d[0]))
-            row.append(d[1])
-            row.append(d[4])
+            row.append(timestamp_to_time(d[BinanceDataFormat.OPEN_TIME]))
+            row.append(d[BinanceDataFormat.OPEN_PRICE])
+            row.append(d[BinanceDataFormat.CLOSE_PRICE])
             row.append(str((close_price - open_price) / open_price))
             row.append(str((high_price - open_price) / open_price))
             row.append(str((low_price - open_price) / open_price))
             row.append(str((high_price - low_price) / open_price))
-            row.append(d[5])
-            row.append(d[9])
+            row.append(d[BinanceDataFormat.VOLUME])
+            row.append(d[BinanceDataFormat.TAKER_BASE])
             rows.append(",".join(row))
 
     headers = "币种,开盘时间,开盘价,收盘价,收盘涨跌幅度,最高涨幅,最高跌幅,最大振幅,成交量,吃单量"
     with open(csv_file_name, "w", encoding="utf8") as f:
         f.write(headers + "\n")
         f.write("\n".join(rows))
+
 
 def data_export_csv_file(param):
     """
@@ -207,22 +216,23 @@ def data_export_csv_file(param):
         for d in tqdm(datas[symbol][-number:], unit="row", desc="{}导出中".format(symbol)):
             row = list()
             row.append(symbol)
-            row.append(timestamp_to_time(d[0]))
-            row.append(d[1])
-            row.append(d[2])
-            row.append(d[3])
-            row.append(d[4])
-            row.append(d[5])
-            row.append(d[7])
-            row.append(str(d[8]))
-            row.append(d[9])
-            row.append(d[10])
+            row.append(timestamp_to_time(d[BinanceDataFormat.OPEN_TIME]))
+            row.append(d[BinanceDataFormat.OPEN_PRICE])
+            row.append(d[BinanceDataFormat.HIGH_PRICE])
+            row.append(d[BinanceDataFormat.LOW_PRICE])
+            row.append(d[BinanceDataFormat.CLOSE_PRICE])
+            row.append(d[BinanceDataFormat.VOLUME])
+            row.append(d[BinanceDataFormat.QUOTE_VOLUME])
+            row.append(str(d[BinanceDataFormat.TRADES]))
+            row.append(d[BinanceDataFormat.TAKER_BASE])
+            row.append(d[BinanceDataFormat.TAKER_QUOTE])
             rows.append(",".join(row))
 
     headers = "币种,开盘时间,开盘价,最高价,最低价,收盘价,成交量(个),成交额(U),交易单数,吃单量(个),吃单额(U)"
     with open(csv_file_name, "w", encoding="utf8") as f:
         f.write(headers + "\n")
         f.write("\n".join(rows))
+
 
 statics_func = {
     "show": statics_show,

@@ -20,6 +20,7 @@ __doc__ = """
 
 from nextbv2.libs.common.constant import (
     TradeStatus,
+    BinanceDataFormat,
     CONST_BASE,
     CONST_CUTDOWN,
     CONST_DECLINE,
@@ -52,16 +53,16 @@ class TradingStraregyTwo(object):
             return True
         if self.down > len(datas):
             return False
-        new_price = float(datas[-1][4])
-        old_price = float(datas[-self.down][1])
+        new_price = float(datas[-1][BinanceDataFormat.CLOSE_PRICE])
+        old_price = float(datas[-self.down][BinanceDataFormat.OPEN_PRICE])
         ratio = round(1.0 - new_price / old_price, 4)
         # 跌幅达到指定指标
         if ratio > CONST_DECLINE / 2:
             return True
         # 连续下跌达到指定次数
         for i in range(-1, -self.down - 1, -1):
-            open_price = float(datas[i][1])
-            close_price = float(datas[i][4])
+            open_price = float(datas[i][BinanceDataFormat.OPEN_PRICE])
+            close_price = float(datas[i][BinanceDataFormat.CLOSE_PRICE])
             if close_price > open_price:
                 return False
 
@@ -72,7 +73,7 @@ class TradingStraregyTwo(object):
         分析传入的数据与交易数据跌幅
         """
         last_buy_price = trade_data.buy_price
-        close_price = float(current_data[4])
+        close_price = float(current_data[BinanceDataFormat.CLOSE_PRICE])
         ratio = round(1.0 - close_price / last_buy_price, 4)
         # 跌幅大于5%
         if ratio > self.decline:
@@ -82,7 +83,7 @@ class TradingStraregyTwo(object):
     def buy(self, data):
         # 先假设固定买入
         buy_quote = self.base
-        buy_price = float(data[4])
+        buy_price = float(data[BinanceDataFormat.CLOSE_PRICE])
         # 向下取整，买入和卖出的数量就一致了
         quantity = round(buy_quote / buy_price - 0.0005, 3)
         # 向上取整
@@ -95,11 +96,11 @@ class TradingStraregyTwo(object):
             "buy_price": buy_price,
             "buy_quantity": quantity,
             "buy_quote": buy_quote,
-            "buy_time": data[0],
+            "buy_time": data[BinanceDataFormat.OPEN_TIME],
             "sell_price": sell_price,
             "sell_quantity": quantity,
             "sell_quote": sell_quote,
-            "sell_time": data[0],
+            "sell_time": data[BinanceDataFormat.OPEN_TIME],
             "profit": sell_quote - buy_quote,
             "profit_ratio": profit_ratio,
             "status": TradeStatus.SELLING.value,
@@ -132,7 +133,7 @@ class TradingStraregyTwo(object):
         last_buy_quantity = trade_data.buy_quantity
         # 本次的成本
         buy_quote = self.base * self.magnification
-        buy_price = float(data[4])
+        buy_price = float(data[BinanceDataFormat.CLOSE_PRICE])
         # 向下取整，买入和卖出的数量就一致了
         quantity = round(buy_quote / buy_price - 0.0005, 3)
         quantity_total = last_buy_quantity + quantity
@@ -152,11 +153,11 @@ class TradingStraregyTwo(object):
             "buy_price": buy_price,
             "buy_quantity": quantity_total,
             "buy_quote": buy_quote_total,
-            "buy_time": data[0],
+            "buy_time": data[BinanceDataFormat.OPEN_TIME],
             "sell_price": sell_price,
             "sell_quantity": quantity_total,
             "sell_quote": sell_quote,
-            "sell_time": data[0],
+            "sell_time": data[BinanceDataFormat.OPEN_TIME],
             "profit": profit,
             "profit_ratio": profit_ratio,
             "status": TradeStatus.SELLING.value,

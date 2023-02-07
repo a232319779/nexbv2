@@ -6,7 +6,7 @@
 # @Software : Visual Studio Code
 # @WeChat   : NextB
 
-from enum import Enum
+from enum import Enum, IntEnum
 
 # 通过实际测试, 币安api接口最大返回1000条数据
 MAX_LIMIT = 1000
@@ -36,3 +36,18 @@ class TradeStatus(Enum):
     SELLING = 0
     MERGE = 1
     DONE = 2
+
+
+class BinanceDataFormat(IntEnum):
+    OPEN_TIME = 0
+    OPEN_PRICE = 1
+    HIGH_PRICE = 2
+    LOW_PRICE = 3
+    CLOSE_PRICE = 4
+    VOLUME = 5
+    CLOSE_TIME = 6
+    QUOTE_VOLUME = 7
+    TRADES = 8
+    TAKER_BASE = 9
+    TAKER_QUOTE = 10
+    IGNORED = 11
