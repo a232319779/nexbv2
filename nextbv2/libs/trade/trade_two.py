@@ -92,7 +92,7 @@ class TradingStraregyTwo(object):
         quantity_offset = symbol_trade_config["quantity_offset"]
         price_accuracy = symbol_trade_config["price_accuracy"]
         price_offset = symbol_trade_config["price_offset"]
-        # 先假设固定买入
+        # 假设固定买入
         buy_quote = self.base
         buy_price = float(data[BinanceDataFormat.CLOSE_PRICE])
         # 向下取整，买入和卖出的数量就一致了
@@ -117,9 +117,7 @@ class TradingStraregyTwo(object):
             "profit_ratio": profit_ratio,
             "status": TradeStatus.SELLING.value,
         }
-        # to do: 调用币安api实现真正的买入
-        #
-        # 目前假设买入
+
         return record_data
 
     def is_sell(self, sell_price, high_price):
@@ -181,7 +179,5 @@ class TradingStraregyTwo(object):
             "profit_ratio": profit_ratio,
             "status": TradeStatus.SELLING.value,
         }
-        # to do: 调用币安api实现真正的买入
-        #
-        # 目前假设买入
+        
         return record_data
