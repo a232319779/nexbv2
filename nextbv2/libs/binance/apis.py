@@ -278,5 +278,5 @@ class NextBBinance(object):
             }
         ]
         """
-        info("查询币种-{}最近的{}次交易信息，订单编号：{}。".format(symbol, limit))
+        info("查询币种-{}最近的{}次交易信息。".format(symbol, limit))
         return self.client.get_my_trades(symbol=symbol, limit=limit)
