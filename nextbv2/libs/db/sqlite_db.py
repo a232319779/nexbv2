@@ -181,7 +181,7 @@ class NextBTradeDB:
         except Exception as e:
             return False
 
-    def status_merge(self, user):
+    def status_merge(self, user, data=None):
         """
         更新交易状态为：合并状态
         """
@@ -198,6 +198,8 @@ class NextBTradeDB:
                 .all()
             )
             for td in trading_datas:
+                if data:
+                    td.sell_time = timestamp_to_datetime(data.get("sell_time"))
                 td.status = TradeStatus.MERGE.value
             self.session_maker.commit()
             return True
@@ -223,6 +225,26 @@ class NextBTradeDB:
             for td in trading_datas:
                 td.sell_time = timestamp_to_datetime(data.get("sell_time"))
                 td.status = TradeStatus.DONE.value
+            # 同步完成才统一提交到数据库
+            self.session_maker.commit()
+            return True
+        except Exception as e:
+            return False
+
+    def status_canceled(self, id, data):
+        """
+        更新交易状态为：完成状态
+        """
+        try:
+            trading_datas = (
+                self.session_maker.query(NextBTradeTable)
+                .filter(NextBTradeTable.id == id)
+                .order_by(NextBTradeTable.id.desc())
+                .all()
+            )
+            for td in trading_datas:
+                td.sell_time = timestamp_to_datetime(data.get("sell_time"))
+                td.status = TradeStatus.CANCELED.value
             # 同步完成才统一提交到数据库
             self.session_maker.commit()
             return True
