@@ -257,8 +257,12 @@ class NextBBinance(object):
             "clientOrderId": "cancelMyOrder1"
         }
         """
-        info("取消币种-{}的订单，订单编号：{}。".format(symbol, orderId))
-        return self.client.cancel_order(symbol=symbol, orderId=orderId)
+        try:
+            info("取消币种-{}的订单，订单编号：{}。".format(symbol, orderId))
+            return self.client.cancel_order(symbol=symbol, orderId=orderId)
+        except Exception as e:
+            error("取消订单失败，失败原因：{}".format(str(e)))
+        return None
 
     def get_my_trades(self, symbol, limit=5):
         """
