@@ -195,14 +195,15 @@ class TradeOnline(object):
             if buy_data:
                 # 取消当前订单
                 order_id = last_trade_one.order_id
-                cancale_info = self.nextb_binance.cancel_order(self.symbol, order_id)
+                self.nextb_binance.cancel_order(self.symbol, order_id)
+                sleep(1)
+                cancale_info = self.nextb_binance.get_order(self.symbol, order_id)
                 cancale_status = cancale_info["stauts"]
                 for _ in range(0, 15):
                     if cancale_status == "CANCELED":
                         break
                 if cancale_status != "CANCELED":
                     error("取消订单失败，订单号：{}".format(order_id))
-                    exit()
                 # 更新交易状态
                 sell_data = dict()
                 sell_data["sell_time"] = cancale_info["workingTime"]
