@@ -198,7 +198,7 @@ class TradeOnline(object):
                 self.nextb_binance.cancel_order(self.symbol, order_id)
                 sleep(1)
                 cancale_info = self.nextb_binance.get_order(self.symbol, order_id)
-                cancale_status = cancale_info["stauts"]
+                cancale_status = cancale_info["status"]
                 for _ in range(0, 15):
                     if cancale_status == "CANCELED":
                         break
