@@ -98,9 +98,9 @@ class TradeOnline(object):
         self.nextb_sqlite_db = NextBTradeDB(sqlite_path)
         self.nextb_sqlite_db.create_table()
         self.nextb_sqlite_db.create_session()
-        if self.check_asset() == False:
+        self.is_can_trade = self.check_asset()
+        if self.is_can_trade == False:
             info("资金不足，不进行交易")
-            exit(0)
 
     def check_asset(self):
         asset_balance = self.nextb_binance.get_asset_balance("BUSD")
@@ -198,7 +198,7 @@ class TradeOnline(object):
                 self.nextb_binance.cancel_order(self.symbol, order_id)
                 sleep(1)
                 cancale_info = self.nextb_binance.get_order(self.symbol, order_id)
-                cancale_status = cancale_info["stauts"]
+                cancale_status = cancale_info["status"]
                 for _ in range(0, 15):
                     if cancale_status == "CANCELED":
                         break
@@ -209,7 +209,7 @@ class TradeOnline(object):
                 sell_data["sell_time"] = cancale_info["workingTime"]
                 self.nextb_sqlite_db.status_merge(self.user)
                 # 补仓买入
-                buy_quantity = buy_data["buy_quantity"]
+                buy_quantity = buy_data["new_buy_quantity"]
                 # 调用币安接口买入
                 trade_info = self.nextb_binance.order_market_buy(
                     symbol=self.symbol, quantity=buy_quantity
@@ -277,11 +277,13 @@ class TradeOnline(object):
                 sell_data = dict()
                 sell_data["sell_time"] = trade_info["workingTime"]
                 self.nextb_sqlite_db.status_done(self.user, sell_data)
-                # 开始下一次购买
-                self.buy()
+                if self.is_can_trade:
+                    # 开始下一次购买
+                    self.buy()
             # 卖出中
             elif status in ["NEW", "PARTIALLY_FILLED"]:
-                self.buy_again(last_trade_one)
+                if self.is_can_trade:
+                    self.buy_again(last_trade_one)
             # 取消订单（人工干预）
             elif status == "CANCELED":
                 sell_data = dict()
@@ -289,7 +291,8 @@ class TradeOnline(object):
                 self.nextb_sqlite_db.status_canceled(last_trade_one.id, sell_data)
                 info("最后一条交易记录已取消，订单号：{}。".format(last_trade_one.order_id))
                 info("重头开始买入。")
-                self.buy()
+                if self.is_can_trade:
+                    self.buy()
             # 其他状态
             else:
                 error("订单：{}状态异常，异常信息：{}".format(order_id, json.dumps(trade_info)))

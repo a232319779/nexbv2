@@ -178,6 +178,7 @@ class TradingStraregyTwo(object):
             "profit": profit,
             "profit_ratio": profit_ratio,
             "status": TradeStatus.SELLING.value,
+            "new_buy_quantity": quantity,
         }
-        
+
         return record_data
