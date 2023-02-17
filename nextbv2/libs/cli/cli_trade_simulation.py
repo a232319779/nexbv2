@@ -145,16 +145,19 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
         if ts.is_sell(sell_price, high_price):
             sell_price = MAX_PRICE
             sell_data = {"sell_time": trade_datas[i][BinanceDataFormat.OPEN_TIME]}
-            nb_db.status_done(user, sell_data)
+            nb_db.status_done(last_trade_one.id, sell_data)
         if status == TradeStatus.SELLING.value:
             # 是否需要补仓
             if ts.is_buy_again(trade_datas[i], last_trade_one):
                 record_data = ts.buy_again(trade_datas[i], last_trade_one)
                 if record_data:
                     # 取消当前订单
-                    nb_db.status_merge(user)
+                    sell_data = dict()
+                    sell_data["sell_time"] = trade_datas[i][BinanceDataFormat.CLOSE_TIME]
+                    nb_db.status_merge(last_trade_one.id, sell_data)
                     record_data["user"] = user
                     record_data["trading_straregy_name"] = ts.__name__
+                    record_data["order_id"] = 1234
                     record_data["symbol"] = symbol
                     sell_price = record_data.get("sell_price")
                     nb_db.add(record_data)
@@ -166,6 +169,7 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
             record_data = ts.buy(trade_datas[i])
             record_data["user"] = user
             record_data["trading_straregy_name"] = ts.__name__
+            record_data["order_id"] = 1234
             record_data["symbol"] = symbol
             sell_price = record_data.get("sell_price")
             nb_db.add(record_data)
@@ -224,7 +228,7 @@ def auto_simulation(ts, nb_db, symbol, trade_datas):
         )
         datas.append(data_str)
     headers = "用户名,交易时间,交易次数,利润值,当前状态,开盘价,收盘价"
-    with open("test.csv", "w", encoding="utf8") as f:
+    with open("simulation.csv", "w", encoding="utf8") as f:
         f.write(headers + "\n")
         f.write("\n".join(datas))
 

@@ -33,10 +33,10 @@ class NextBBinance(object):
         """
         # 使用代理服务器
         if proxies:
-            info("初始化币安api接口对象，代理地址设置为：{}".format(json.dumps(proxies)))
+            debug("初始化币安api接口对象，代理地址设置为：{}".format(json.dumps(proxies)))
             self.client = Client(api_key, api_secret, {"proxies": proxies})
         else:
-            info("初始化币安api接口对象，不使用代理。")
+            debug("初始化币安api接口对象，不使用代理。")
             self.client = Client(api_key, api_secret)
 
     def get_symbol_info(self, symbol):
@@ -111,7 +111,7 @@ class NextBBinance(object):
             if symbol == "":
                 error("获取币种-{}K线数据失败，失败原因：{}".format(symbol, "未指定币种信息。"))
                 return None
-            info("获取币种-{}的K线数据。".format(symbol))
+            debug("获取币种-{}的K线数据。".format(symbol))
             return self.client.get_klines(**r_param)
         except Exception as e:
             error("获取币种-{}K线数据失败，失败原因：{}".format(symbol, str(e)))
@@ -127,7 +127,7 @@ class NextBBinance(object):
             "locked": "0.00000000"
         }
         """
-        info("查询钱包中币种-{}的数量。".format(symbol))
+        debug("查询钱包中币种-{}的数量。".format(symbol))
         return self.client.get_asset_balance(symbol)
 
     def get_symbol_ticker(self, symbol):
@@ -257,8 +257,12 @@ class NextBBinance(object):
             "clientOrderId": "cancelMyOrder1"
         }
         """
-        info("取消币种-{}的订单，订单编号：{}。".format(symbol, orderId))
-        return self.client.cancel_order(symbol=symbol, orderId=orderId)
+        try:
+            info("取消币种-{}的订单，订单编号：{}。".format(symbol, orderId))
+            return self.client.cancel_order(symbol=symbol, orderId=orderId)
+        except Exception as e:
+            error("取消订单失败，失败原因：{}".format(str(e)))
+        return None
 
     def get_my_trades(self, symbol, limit=5):
         """
@@ -278,5 +282,5 @@ class NextBBinance(object):
             }
         ]
         """
-        info("查询币种-{}最近的{}次交易信息，订单编号：{}。".format(symbol, limit))
+        info("查询币种-{}最近的{}次交易信息。".format(symbol, limit))
         return self.client.get_my_trades(symbol=symbol, limit=limit)

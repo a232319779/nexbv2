@@ -67,6 +67,24 @@ SYMBOL_CALC_CONFIG = {
         "price_accuracy": 4,
         "price_offset": 0.00005,
     },
+    "BUSDUSDT": {
+        "quantity_accuracy": 0,
+        "quantity_offset": 0.5,
+        "price_accuracy": 4,
+        "price_offset": 0.00005,
+    },
+    "BNBBUSD": {
+        "quantity_accuracy": 3,
+        "quantity_offset": 0.0005,
+        "price_accuracy": 1,
+        "price_offset": 0.05,
+    },
+    "CAKEBUSD": {
+        "quantity_accuracy": 2,
+        "quantity_offset": 0.005,
+        "price_accuracy": 3,
+        "price_offset": 0.0005,
+    },
 }
 
 
@@ -75,6 +93,7 @@ class TradeStatus(Enum):
     SELLING = 0
     MERGE = 1
     DONE = 2
+    CANCELED = 3
 
 
 class BinanceDataFormat(IntEnum):

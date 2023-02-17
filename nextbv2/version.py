@@ -6,4 +6,4 @@
 # @Software : Visual Studio Code
 # @WeChat   : NextB
 
-NEXTB_V2_VERSION = "2.1.15"
+NEXTB_V2_VERSION = "2.2.7"
