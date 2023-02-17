@@ -292,7 +292,6 @@ class TradeOnline(object):
             )
 
     def run(self):
-        info("-----------------用户：{}--------------------------".format(self.user))
         # 2. 查询最近一条交易记录
         last_trade_one = self.nextb_sqlite_db.get_last_one(self.user)
         # 如果有交易记录，且交易状态为卖出中
@@ -335,6 +334,8 @@ class TradeOnline(object):
         # 没有交易记录
         else:
             self.buy()
+
+        info("-----------------用户：{}交易完成--------------------------".format(self.user))
 
 
 def run():
