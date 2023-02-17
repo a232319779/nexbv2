@@ -91,7 +91,7 @@ class TestNextBSqlite:
         new_data = nbs.get_last_one(user_id)
         assert new_data
         # 更新交易状态
-        assert nbs.status_merge(user_id)
+        assert nbs.status_merge(new_data.id, datetime.datetime.now())
         # 插入第二条数据
         assert nbs.add(data)
         # 更新交易记录
@@ -103,5 +103,5 @@ class TestNextBSqlite:
         done_data["profit"] = 10.0
         done_data["profit_ratio"] = 0.001
         done_data["status"] = TradeStatus.DONE.value
-        assert nbs.status_done(user_id, done_data)
+        assert nbs.status_done(new_data.id, done_data)
         nbs.close()

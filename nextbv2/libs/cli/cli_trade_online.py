@@ -50,6 +50,15 @@ def parse_cmd():
         action="store",
         default="",
     )
+    parser.add_argument(
+        "-s",
+        "--sleep",
+        help="指定休眠时间，单位：秒，默认为30秒。",
+        type=int,
+        dest="sleep",
+        action="store",
+        default=30,
+    )
 
     args = parser.parse_args()
 
@@ -72,6 +81,8 @@ def get_config(file_name):
             "profit_ratio": 0.013,
             "force_buy": False,
             "user": "nextb",
+            "sqlite_path": "./datas/trade.db",
+            "asset_symbol": "BUSD",
         }
         return config
 
@@ -84,42 +95,43 @@ class TradeOnline(object):
         # 1.1 读取币安配置
         self.config = parse_ini_config(self.config_file)
         # 1.2 读取配置中待处理的币种数据数据
-        self.symbol = self.config.get("symbols")[0]
+        # self.symbol = self.config.get("symbols")[0]
         # 1.3 读取交易配置
         self.trade_config = get_config(self.trade_config_file)
         # 1.4 初始化交易策略对象
         self.user = self.trade_config.get("user")
-        self.trade_config["symbol"] = self.symbol
+        self.symbol = self.trade_config.get("symbol")
+        self.asset_symbol = self.trade_config.get("asset_symbol")
+        # self.trade_config["symbol"] = self.symbol
         self.trading_straregy = TradingStraregyTwo(self.trade_config)
         # 1.5 创建币安API对象
         self.nextb_binance = create_binance(self.config)
         # 1.6 初始化数据库对象
-        sqlite_path = self.config.get("sqlite_path")
+        sqlite_path = self.trade_config.get("sqlite_path")
         self.nextb_sqlite_db = NextBTradeDB(sqlite_path)
         self.nextb_sqlite_db.create_table()
         self.nextb_sqlite_db.create_session()
         self.is_can_trade = self.check_asset()
         if self.is_can_trade == False:
-            info("资金不足，不进行交易")
+            info("用户：{}，资金不足，不进行交易".format(self.user))
 
     def check_asset(self):
-        asset_balance = self.nextb_binance.get_asset_balance("BUSD")
+        asset_balance = self.nextb_binance.get_asset_balance(self.asset_symbol)
         if asset_balance:
             free = float(asset_balance.get("free"))
             if free > self.trade_config["base"]:
-                info("BUSD的数量为：{}".format(free))
+                info("用户：{}，钱包中{}的数量为：{}".format(self.user, self.asset_symbol, free))
                 return True
         else:
-            error("获取当前资产出错。")
+            error("用户：{}，获取当前资产出错。".format(self.user))
         return False
 
     def get_binance_data(self):
-        symbol = self.config.get("symbols")[0]
         klines_interval = self.config.get("klines_interval", "1h")
         limit = self.config.get("limit", 3)
         # 从接口获取数据
         param = {
-            "symbol": symbol,
+            "symbol": self.symbol,
             "interval": klines_interval,
             "limit": limit,
             "startTime": None,
@@ -131,7 +143,7 @@ class TradeOnline(object):
         # 获取最近3条交易数据
         datas = self.get_binance_data()
         if datas is None:
-            error("查询{}数据失败。".format(self.symbol))
+            error("用户：{}查询{}数据失败。".format(self.user, self.symbol))
             exit()
         # 判断是否买入
         if self.trading_straregy.is_buy_time(datas):
@@ -170,17 +182,22 @@ class TradeOnline(object):
                 # 仅保存挂单ID
                 buy_data["order_id"] = sell_order_id
                 self.nextb_sqlite_db.add(buy_data)
-                info("卖出挂单号为：{}".format(sell_order_id))
+                info("用户{}，卖出挂单号为：{}".format(self.user, sell_order_id))
             else:
                 error(
-                    "出现错误：{}市价（{}）买入{}个失败。订单ID：{}".format(
-                        self.symbol, buy_data["buy_price"], buy_quantity, orderId
+                    "用户{}，出现错误：{}市价（{}）买入{}个失败。订单ID：{}".format(
+                        self.user,
+                        self.symbol,
+                        buy_data["buy_price"],
+                        buy_quantity,
+                        orderId,
                     )
                 )
                 exit(0)
         else:
             info(
-                "不买入。币种：{}，收盘价格：{}，收盘时间：{}".format(
+                "用户：{}，不买入。币种：{}，收盘价格：{}，收盘时间：{}".format(
+                    self.user,
                     self.symbol,
                     datas[-1][BinanceDataFormat.CLOSE_PRICE],
                     timestamp_to_time(datas[-1][BinanceDataFormat.CLOSE_TIME]),
@@ -196,6 +213,7 @@ class TradeOnline(object):
                 # 取消当前订单
                 order_id = last_trade_one.order_id
                 self.nextb_binance.cancel_order(self.symbol, order_id)
+                # 等待取消状态同步
                 sleep(1)
                 cancale_info = self.nextb_binance.get_order(self.symbol, order_id)
                 cancale_status = cancale_info["status"]
@@ -203,11 +221,11 @@ class TradeOnline(object):
                     if cancale_status == "CANCELED":
                         break
                 if cancale_status != "CANCELED":
-                    error("取消订单失败，订单号：{}".format(order_id))
+                    error("用户：{}取消订单失败，订单号：{}".format(self.user, order_id))
                 # 更新交易状态
                 sell_data = dict()
                 sell_data["sell_time"] = cancale_info["workingTime"]
-                self.nextb_sqlite_db.status_merge(self.user)
+                self.nextb_sqlite_db.status_merge(last_trade_one.id, sell_data)
                 # 补仓买入
                 buy_quantity = buy_data["new_buy_quantity"]
                 # 调用币安接口买入
@@ -238,21 +256,26 @@ class TradeOnline(object):
                         self.symbol, sell_price, sell_quantity
                     )
                     sell_order_id = sell_trade_info["orderId"]
-                    info("卖出挂单号为：{}".format(sell_order_id))
+                    info("用户：{}卖出挂单号为：{}".format(self.user, sell_order_id))
                     # 仅保存挂单ID
                     buy_data["order_id"] = sell_order_id
                     self.nextb_sqlite_db.add(buy_data)
                 else:
                     error(
-                        "补仓出现错误：{}市价（{}）买入{}个失败。订单ID：{}".format(
-                            self.symbol, buy_data["buy_price"], buy_quantity, orderId
+                        "用户：{}补仓出现错误：{}市价（{}）买入{}个失败。订单ID：{}".format(
+                            self.user,
+                            self.symbol,
+                            buy_data["buy_price"],
+                            buy_quantity,
+                            orderId,
                         )
                     )
                     exit(0)
             else:
                 quote = last_trade_one.buy_quote
                 error(
-                    "当前交易额：{}U，当前资产：{}，已超过最大本金：{}".format(
+                    "用户：{}当前交易额：{}U，当前资产：{}，已超过最大本金：{}".format(
+                        self.user,
                         quote,
                         self.trade_config["max_quote"],
                         quote + self.trade_config["max_quote"] - CONST_BASE,
@@ -262,9 +285,14 @@ class TradeOnline(object):
             buy_price = last_trade_one.buy_price
             close_price = float(datas[-1][BinanceDataFormat.CLOSE_PRICE])
             amp = round((1 - buy_price / close_price) * 100, 2)
-            info("无需补仓，买入价格：{}，当前价格：{}，振幅：{}%".format(buy_price, close_price, amp))
+            info(
+                "用户：{}无需补仓，买入价格：{}，当前价格：{}，振幅：{}%".format(
+                    self.user, buy_price, close_price, amp
+                )
+            )
 
     def run(self):
+        info("-----------------用户：{}--------------------------".format(self.user))
         # 2. 查询最近一条交易记录
         last_trade_one = self.nextb_sqlite_db.get_last_one(self.user)
         # 如果有交易记录，且交易状态为卖出中
@@ -276,7 +304,7 @@ class TradeOnline(object):
             if status == "FILLED":
                 sell_data = dict()
                 sell_data["sell_time"] = trade_info["workingTime"]
-                self.nextb_sqlite_db.status_done(self.user, sell_data)
+                self.nextb_sqlite_db.status_done(last_trade_one.id, sell_data)
                 if self.is_can_trade:
                     # 开始下一次购买
                     self.buy()
@@ -289,13 +317,21 @@ class TradeOnline(object):
                 sell_data = dict()
                 sell_data["sell_time"] = trade_info["workingTime"]
                 self.nextb_sqlite_db.status_canceled(last_trade_one.id, sell_data)
-                info("最后一条交易记录已取消，订单号：{}。".format(last_trade_one.order_id))
-                info("重头开始买入。")
+                info(
+                    "用户：{}最后一条交易记录已取消，订单号：{}。".format(
+                        self.user, last_trade_one.order_id
+                    )
+                )
+                info("用户：{}重头开始买入。".format(self.user))
                 if self.is_can_trade:
                     self.buy()
             # 其他状态
             else:
-                error("订单：{}状态异常，异常信息：{}".format(order_id, json.dumps(trade_info)))
+                error(
+                    "用户：{}订单：{}状态异常，异常信息：{}".format(
+                        self.user, order_id, json.dumps(trade_info)
+                    )
+                )
         # 没有交易记录
         else:
             self.buy()
@@ -310,7 +346,7 @@ def run():
         "config": args.config,
         "trade_config": args.trade_config,
     }
-    # 每小时的第59分钟运行程序，先sleep30秒，尽可能保证程序使用收盘价
-    sleep(30)
+    # 建议每小时的第59分钟运行程序，先休眠sleep秒，尽可能保证程序使用收盘价
+    sleep(args.sleep)
     to = TradeOnline(param)
     to.run()

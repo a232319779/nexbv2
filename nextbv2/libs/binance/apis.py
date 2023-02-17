@@ -33,10 +33,10 @@ class NextBBinance(object):
         """
         # 使用代理服务器
         if proxies:
-            info("初始化币安api接口对象，代理地址设置为：{}".format(json.dumps(proxies)))
+            debug("初始化币安api接口对象，代理地址设置为：{}".format(json.dumps(proxies)))
             self.client = Client(api_key, api_secret, {"proxies": proxies})
         else:
-            info("初始化币安api接口对象，不使用代理。")
+            debug("初始化币安api接口对象，不使用代理。")
             self.client = Client(api_key, api_secret)
 
     def get_symbol_info(self, symbol):
@@ -111,7 +111,7 @@ class NextBBinance(object):
             if symbol == "":
                 error("获取币种-{}K线数据失败，失败原因：{}".format(symbol, "未指定币种信息。"))
                 return None
-            info("获取币种-{}的K线数据。".format(symbol))
+            debug("获取币种-{}的K线数据。".format(symbol))
             return self.client.get_klines(**r_param)
         except Exception as e:
             error("获取币种-{}K线数据失败，失败原因：{}".format(symbol, str(e)))
@@ -127,7 +127,7 @@ class NextBBinance(object):
             "locked": "0.00000000"
         }
         """
-        info("查询钱包中币种-{}的数量。".format(symbol))
+        debug("查询钱包中币种-{}的数量。".format(symbol))
         return self.client.get_asset_balance(symbol)
 
     def get_symbol_ticker(self, symbol):

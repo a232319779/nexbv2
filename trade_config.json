@@ -1,0 +1,13 @@
+{
+  "symbol": "BNBBUSD",
+  "base": 100.0,
+  "down": 1,
+  "decline": 0.03,
+  "magnification": 1.0,
+  "max_quote": 15000,
+  "profit_ratio": 0.013,
+  "force_buy": false,
+  "user": "nextb",
+  "sqlite_path": "./datas/trade.db",
+  "asset_symbol": "BUSD"
+}
