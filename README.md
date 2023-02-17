@@ -42,7 +42,6 @@ HTTP_PROXY = http://127.0.0.1:7890
 HTTPS_PROXY = http://127.0.0.1:7890
 SYMBOLS = BNBUSDT
 DATA_PATH = ./datas/serialize.data
-SQLITE_PATH = ./datas/trade.db
 ```
 
 * API_KEY：币安的api_key
@@ -55,7 +54,6 @@ SQLITE_PATH = ./datas/trade.db
 * HTTPS_PROXY：https类型代理地址
 * SYMBOLS：需要获取的币种名称，币种间使用","隔开，如：BTCUSDT,ETHUSDT,BNBUSDT
 * DATA_PATH：本地数据集保存路径
-* SQLITE_PATH：交易数据存储路径
 
 ### 3.2 交易参数配置
 
@@ -63,15 +61,17 @@ SQLITE_PATH = ./datas/trade.db
 
 ```json
 {
-  "symbol": "BNBUSDT",
+  "symbol": "BNBBUSD",
   "base": 100.0,
   "down": 1,
   "decline": 0.03,
   "magnification": 1.0,
-  "max_quote": 1500,
+  "max_quote": 15000,
   "profit_ratio": 0.013,
   "force_buy": false,
-  "user": "nextb"
+  "user": "nextb",
+  "sqlite_path": "./datas/trade.db",
+  "asset_symbol": "BUSD"
 }
 ```
 
@@ -84,6 +84,8 @@ SQLITE_PATH = ./datas/trade.db
 * profit_ratio：收益率
 * force_buy：不考虑策略，只要空仓，则强制买入
 * user：用户名
+* sqlite_path：交易数据存储路径
+* asset_symbol：交易资产币种
 
 ## 四、回测结果
 
