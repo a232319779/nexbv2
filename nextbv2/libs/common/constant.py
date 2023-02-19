@@ -38,8 +38,8 @@ SYMBOL_CALC_CONFIG = {
         "price_offset": 0.05,
     },
     "CAKEUSDT": {
-        "quantity_accuracy": 3,
-        "quantity_offset": 0.0005,
+        "quantity_accuracy": 2,
+        "quantity_offset": 0.005,
         "price_accuracy": 3,
         "price_offset": 0.0005,
     },
@@ -80,8 +80,8 @@ SYMBOL_CALC_CONFIG = {
         "price_offset": 0.05,
     },
     "CAKEBUSD": {
-        "quantity_accuracy": 3,
-        "quantity_offset": 0.0005,
+        "quantity_accuracy": 2,
+        "quantity_offset": 0.005,
         "price_accuracy": 3,
         "price_offset": 0.0005,
     },
