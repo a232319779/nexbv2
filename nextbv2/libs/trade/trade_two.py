@@ -102,7 +102,7 @@ class TradingStraregyTwo(object):
             buy_price * (1 + self.profit_ratio) + price_offset, price_accuracy
         )
         sell_quote = round(sell_price * quantity, 2)
-        profit = sell_quote - buy_quote
+        profit = round(sell_quote - buy_quote, 2)
         profit_ratio = round(profit / buy_quote, 3)
         record_data = {
             "buy_price": buy_price,
@@ -113,7 +113,7 @@ class TradingStraregyTwo(object):
             "sell_quantity": quantity,
             "sell_quote": sell_quote,
             "sell_time": data[BinanceDataFormat.OPEN_TIME],
-            "profit": sell_quote - buy_quote,
+            "profit": profit,
             "profit_ratio": profit_ratio,
             "status": TradeStatus.SELLING.value,
         }
@@ -154,7 +154,7 @@ class TradingStraregyTwo(object):
         buy_price = float(data[BinanceDataFormat.CLOSE_PRICE])
         # 向下取整，买入和卖出的数量就一致了
         quantity = round(buy_quote / buy_price - quantity_offset, quantity_accuracy)
-        quantity_total = last_buy_quantity + quantity
+        quantity_total = round(last_buy_quantity + quantity, quantity_accuracy)
         buy_quote_total = last_buy_quote + buy_quote
         if buy_quote_total > self.max_quote:
             return {}
@@ -164,7 +164,7 @@ class TradingStraregyTwo(object):
             price_accuracy,
         )
         sell_quote = round(sell_price * quantity_total, 2)
-        profit = sell_quote - buy_quote_total
+        profit = round(sell_quote - buy_quote_total, 2)
         profit_ratio = round(profit / buy_quote_total, 3)
         record_data = {
             "buy_price": buy_price,
