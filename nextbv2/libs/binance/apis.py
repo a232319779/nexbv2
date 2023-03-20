@@ -264,7 +264,7 @@ class NextBBinance(object):
             error("取消订单失败，失败原因：{}".format(str(e)))
         return None
 
-    def get_my_trades(self, symbol, limit=5):
+    def get_my_trades(self, symbol, startTime, limit=5):
         """
         通过币安API接口，获取历史成交记录
         返回值格式：
@@ -282,5 +282,32 @@ class NextBBinance(object):
             }
         ]
         """
-        info("查询币种-{}最近的{}次交易信息。".format(symbol, limit))
-        return self.client.get_my_trades(symbol=symbol, limit=limit)
+        debug("查询币种-{}最近的{}次交易信息。".format(symbol, limit))
+        return self.client.get_my_trades(
+            symbol=symbol, startTime=startTime, limit=limit
+        )
+
+    def get_open_orders(self, symbol):
+        """
+        通过币安API接口，获取历史成交记录
+        返回值格式：
+        [
+            {
+                "symbol": "LTCBTC",
+                "orderId": 1,
+                "clientOrderId": "myOrder1",
+                "price": "0.1",
+                "origQty": "1.0",
+                "executedQty": "0.0",
+                "status": "NEW",
+                "timeInForce": "GTC",
+                "type": "LIMIT",
+                "side": "BUY",
+                "stopPrice": "0.0",
+                "icebergQty": "0.0",
+                "time": 1499827319559
+            }
+        ]
+        """
+        debug("获取当前{}委托信息。".format(symbol))
+        return self.client.get_open_orders(symbol=symbol)
