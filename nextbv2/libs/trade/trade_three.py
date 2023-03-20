@@ -1,21 +1,25 @@
 # -*- coding: utf-8 -*-
-# @Time     : 2023/02/06 15:20:23
+# @Time     : 2023/03/20 14:14:23
 # @Author   : ddvv
 # @Site     : https://ddvvmmzz.github.io
-# @File     : trade_two.py
+# @File     : trade_three.py
 # @Software : Visual Studio Code
 # @WeChat   : NextB
 
 
 __doc__ = """
-交易策略2：
+交易策略3：
 
 1. 监测到每连续下跌N次，则按开盘价买入固定的仓位
 2. 计算盈利值为Y的价格，挂单卖出
-3. 如果下跌超过D%，则取消当前挂单，以当前开盘价买入固定的仓位
+3. 如果下跌超过D%，则取消当前挂单，以当前开盘价买入固定的仓位，D%为动态计算的值
 4. 重新计算盈利值为Y1的价格，挂单卖出
 5. 继续3、4步
 6. 若卖出则继续下一次，否则继续等待
+
+与交易策略2的区别：D%为动态计算的值
+计算方法：
+取72小时的下降平均值
 """
 
 from nextbv2.libs.common.constant import (
@@ -24,6 +28,7 @@ from nextbv2.libs.common.constant import (
     CONST_BASE,
     CONST_CUTDOWN,
     CONST_DECLINE,
+    CONST_DECLINE_TIME,
     CONST_MAGNIFICATION,
     CONST_MAX_QUOTE,
     CONST_PROFIT_RATIO,
@@ -32,15 +37,17 @@ from nextbv2.libs.common.constant import (
 )
 
 
-class TradingStraregyTwo(object):
-    __name__ = "trade_two"
+class TradingStraregyThree(object):
+    __name__ = "trade_three"
 
     def __init__(self, config):
         # 默认精确度
         self.symbol = config.get("symbol", "BNBUSDT")
         self.base = config.get("base", CONST_BASE)
         self.down = config.get("down", CONST_CUTDOWN)
+        self.const_decline = config.get("decline", CONST_DECLINE)
         self.decline = config.get("decline", CONST_DECLINE)
+        self.decline_time = config.get("decline_time", CONST_DECLINE_TIME)
         self.magnification = config.get("magnification", CONST_MAGNIFICATION)
         self.max_quote = config.get("max_quote", CONST_MAX_QUOTE)
         self.profit_ratio = config.get("profit_ratio", CONST_PROFIT_RATIO)
@@ -185,6 +192,29 @@ class TradingStraregyTwo(object):
 
     def calc_buy_threasold(self, datas):
         """
-        本策略不含此逻辑
+        动态计算阈值self.decline
         """
+        # 每次使用时，初始化为默认值
+        self.decline = self.const_decline
+        # 取最近N小时的数据，计算阈值
+        a_datas = datas[-self.decline_time :]
+        down_ratio_list = list()
+        for data in a_datas:
+            close_price = float(data[BinanceDataFormat.CLOSE_PRICE])
+            # low_price = float(data[BinanceDataFormat.LOW_PRICE])
+            open_price = float(data[BinanceDataFormat.OPEN_PRICE])
+            ratio = round(1.0 - close_price / open_price, 4)
+            # 只统计降低的振幅
+            if ratio > 0:
+                down_ratio_list.append(ratio)
+        if len(down_ratio_list) > 0:
+            # 更新阈值：使用降低的平均值更新补仓阈值
+            self.decline = round(sum(down_ratio_list) / len(down_ratio_list), 4) * 3
+            # 如果降幅超过默认值，则使用默认值
+            self.decline = (
+                self.decline
+                if self.decline < self.const_decline
+                else self.const_decline
+            )
+
         return self.decline

@@ -9,6 +9,7 @@
 
 import argparse
 import json
+from prettytable import PrettyTable
 from tqdm import tqdm
 from nextbv2.version import NEXTB_V2_VERSION
 from nextbv2.libs.common.constant import *
@@ -17,6 +18,7 @@ from nextbv2.libs.common.common import create_serialize
 from nextbv2.libs.common.nextb_time import timestamp_to_time
 from nextbv2.libs.trade.trade_one import TradingStraregyOne
 from nextbv2.libs.trade.trade_two import TradingStraregyTwo
+from nextbv2.libs.trade.trade_three import TradingStraregyThree
 from nextbv2.libs.db.sqlite_db import NextBTradeDB
 from nextbv2.libs.common.constant import (
     TradeStatus,
@@ -38,7 +40,7 @@ def parse_cmd():
     parser.add_argument(
         "-t",
         "--trading-straregy",
-        help="交易策略名称，当前支持[trade_one, trade_two]，默认值：trade_two",
+        help="交易策略名称，当前支持[trade_one, trade_two, trade_three]，默认值：trade_two",
         type=str,
         dest="trading_straregy",
         action="store",
@@ -136,7 +138,6 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
     data_len = len(trade_datas)
     sell_price = MAX_PRICE
     for i in tqdm(range(0, data_len), unit="row", desc="用户{}模拟中".format(user)):
-        iter_datas = trade_datas[: i + 1]
         high_price = float(trade_datas[i][BinanceDataFormat.HIGH_PRICE])
         last_trade_one = nb_db.get_last_one(user)
         status = TradeStatus.UNKNOWN.value
@@ -147,13 +148,17 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
             sell_data = {"sell_time": trade_datas[i][BinanceDataFormat.OPEN_TIME]}
             nb_db.status_done(last_trade_one.id, sell_data)
         if status == TradeStatus.SELLING.value:
+            # 动态计算补仓阈值
+            ts.calc_buy_threasold(trade_datas[: i + 1])
             # 是否需要补仓
             if ts.is_buy_again(trade_datas[i], last_trade_one):
                 record_data = ts.buy_again(trade_datas[i], last_trade_one)
                 if record_data:
                     # 取消当前订单
                     sell_data = dict()
-                    sell_data["sell_time"] = trade_datas[i][BinanceDataFormat.CLOSE_TIME]
+                    sell_data["sell_time"] = trade_datas[i][
+                        BinanceDataFormat.CLOSE_TIME
+                    ]
                     nb_db.status_merge(last_trade_one.id, sell_data)
                     record_data["user"] = user
                     record_data["trading_straregy_name"] = ts.__name__
@@ -165,7 +170,7 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
                     quote = last_trade_one.buy_quote
                     info("当前交易额：{}U，已超过最大本金：{}".format(quote, quote + CONST_BASE))
             continue
-        if ts.is_buy_time(iter_datas):
+        if ts.is_buy_time(trade_datas[: i + 1]):
             record_data = ts.buy(trade_datas[i])
             record_data["user"] = user
             record_data["trading_straregy_name"] = ts.__name__
@@ -178,7 +183,7 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
     )
     max_quote = nb_db.get_max_quote(user)
     mean_quote, quote_ratio = nb_db.get_quote_use_ratio(user)
-    profit_ratio = round(total_profit / mean_quote * 100, 2)
+    profit_ratio = round(total_profit / max_quote * 100, 2)
     status_str = "未知状态"
     if status == TradeStatus.SELLING.value:
         status_str = "卖出中"
@@ -186,23 +191,27 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
         status_str = "已合并"
     elif status == TradeStatus.DONE.value:
         status_str = "空仓中"
-    info(
-        "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，平均投入成本：{}U，利润率: {}%, 当前交易状态: {}".format(
-            timestamp_to_time(trade_datas[0][BinanceDataFormat.OPEN_TIME]),
-            count,
-            total_profit,
-            max_quote,
-            mean_quote,
-            profit_ratio,
-            status_str,
-        )
-    )
+    # 统计资金使用情况
     qc_list = list()
     c_total = sum(quote_ratio.values())
     for q, c in quote_ratio.items():
         c_ratio = round(c / c_total * 100, 2)
-        qc_list.append("{}U: {}次-{}%".format(q, c, c_ratio))
-    info("资金使用情况如下：{}".format(",".join(qc_list)))
+        qc_list.append([q, c, "{}%".format(c_ratio)])
+    x = PrettyTable()
+    x.field_names = ["资金(单位: U)", "使用次数", "使用占比"]
+    x.add_rows(qc_list)
+    print(x)
+    # 输出汇总信息
+    info(
+        "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，利润率: {}%, 当前交易状态: {}".format(
+            timestamp_to_time(trade_datas[0][BinanceDataFormat.OPEN_TIME]),
+            count,
+            total_profit,
+            max_quote,
+            profit_ratio,
+            status_str,
+        )
+    )
     return ",".join(
         [
             user,
@@ -272,9 +281,14 @@ def get_trade_two_ts(config):
     return TradingStraregyTwo(config)
 
 
+def get_trade_three_ts(config):
+    return TradingStraregyThree(config)
+
+
 trade_func = {
     "trade_one": get_trade_one_ts,
     "trade_two": get_trade_two_ts,
+    "trade_three": get_trade_three_ts,
 }
 
 
