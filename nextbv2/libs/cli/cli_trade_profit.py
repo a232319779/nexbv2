@@ -10,6 +10,7 @@
 import argparse
 from prettytable import PrettyTable
 from nextbv2.version import NEXTB_V2_VERSION
+from nextbv2.libs.common.nextb_time import timestamp_to_time
 from nextbv2.libs.common.constant import (
     DEFAULT_START_TIMESTAMP,
 )
@@ -46,6 +47,7 @@ def parse_cmd():
 def statics(datas, open_datas):
     datas.reverse()
     symbol = datas[0].get("symbol")
+    start_time = timestamp_to_time(datas[-1].get("time"))
     buy_total = 0.0
     sell_total = 0.0
     commission_total = 0.0
@@ -64,7 +66,14 @@ def statics(datas, open_datas):
         sell = price * origQty
         sell_total += sell
 
-    return [symbol, buy_total, sell_total, sell_total - buy_total, commission_total]
+    return [
+        symbol,
+        start_time,
+        buy_total,
+        sell_total,
+        sell_total - buy_total,
+        commission_total,
+    ]
 
 
 def total(datas):
@@ -73,17 +82,18 @@ def total(datas):
     sell_total = 0.0
     profit_total = 0.0
     commission_total = 0.0
+    start_time = datas[0][1]
     for data in datas:
-        buy = data[1]
-        sell = data[2]
-        profit = data[3]
-        commission = data[4]
+        buy = data[2]
+        sell = data[3]
+        profit = data[4]
+        commission = data[5]
         buy_total += buy
         sell_total += sell
         profit_total += profit
         commission_total += commission
 
-    return [symbol, buy_total, sell_total, profit_total, commission_total]
+    return [symbol, start_time, buy_total, sell_total, profit_total, commission_total]
 
 
 def get_profit_ratio(config_file):
@@ -113,7 +123,7 @@ def get_profit_ratio(config_file):
     x_datas.append(total(x_datas))
 
     x = PrettyTable()
-    x.field_names = ["币种", "总支付金额", "总收入金额", "利润", "手续费"]
+    x.field_names = ["币种", "开始时间", "总支付金额", "总收入金额", "利润", "手续费"]
     x.add_rows(x_datas)
     print(x)
 
