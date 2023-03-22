@@ -89,7 +89,7 @@ class TradingStraregyOne(object):
             "profit_ratio": profit_ratio,
             "status": TradeStatus.SELLING.value,
         }
-        
+
         return record_data
 
     def is_sell(self, sell_price, high_price):
@@ -111,3 +111,9 @@ class TradingStraregyOne(object):
         本策略不含此逻辑
         """
         return {}
+
+    def calc_buy_threasold(self, datas):
+        """
+        本策略不含此逻辑
+        """
+        return 0.0
