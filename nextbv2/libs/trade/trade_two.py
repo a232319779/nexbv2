@@ -75,13 +75,23 @@ class TradingStraregyTwo(object):
         """
         分析传入的数据与交易数据跌幅
         """
+        # 条件1：如果当前价格较上一次的买入价格跌幅达到指定阈值，则买入
         last_buy_price = trade_data.buy_price
-        close_price = float(current_data[BinanceDataFormat.CLOSE_PRICE])
+        close_price = float(current_data[-1][BinanceDataFormat.CLOSE_PRICE])
         ratio = round(1.0 - close_price / last_buy_price, 4)
-        # 跌幅大于指定阈值
         if ratio > self.decline:
             return True
+        
+        # 条件2：如果当前价格，较3小时前内的开盘价跌幅达到指定阈值，则买入
+        data_len = len(current_data)
+        index = -data_len if data_len < 3 else -3
+        last_3_open_price = float(current_data[index][BinanceDataFormat.OPEN_PRICE])
+        hit_ratio = round(1.0 - close_price / last_3_open_price, 4)
+        if hit_ratio > self.decline:
+            return True
+        # 否则不补仓
         return False
+    
 
     def buy(self, data):
         # 获取交易币种的精确度信息等

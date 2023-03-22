@@ -151,7 +151,7 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
             # 动态计算补仓阈值
             ts.calc_buy_threasold(trade_datas[: i + 1])
             # 是否需要补仓
-            if ts.is_buy_again(trade_datas[i], last_trade_one):
+            if ts.is_buy_again(trade_datas[:i], last_trade_one):
                 record_data = ts.buy_again(trade_datas[i], last_trade_one)
                 if record_data:
                     # 取消当前订单
