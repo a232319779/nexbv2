@@ -46,6 +46,19 @@ class TradingStraregyTwo(object):
         self.profit_ratio = config.get("profit_ratio", CONST_PROFIT_RATIO)
         self.force_buy = config.get("force_buy", CONST_FORCE_BUY)
 
+    def get_param(self):
+        param = {
+            "down": self.down,
+            "decline": self.decline,
+            "profit_ratio": self.profit_ratio,
+        }
+        return param
+
+    def set_param(self, param):
+        self.down = param.get("down", CONST_CUTDOWN)
+        self.decline = param.get("decline", CONST_DECLINE)
+        self.profit_ratio = param.get("profit_ratio", CONST_PROFIT_RATIO)
+
     def is_buy_time(self, datas):
         """
         分析传入的数据，判断是否可以买入。本策略中，通过分析最近时间连续下跌次数来判断是否满足买入条件
@@ -81,17 +94,16 @@ class TradingStraregyTwo(object):
         ratio = round(1.0 - close_price / last_buy_price, 4)
         if ratio > self.decline:
             return True
-        
+
         # 条件2：如果当前价格，较3小时前内的开盘价跌幅达到指定阈值，则买入
-        data_len = len(current_data)
-        index = -data_len if data_len < 3 else -3
-        last_3_open_price = float(current_data[index][BinanceDataFormat.OPEN_PRICE])
-        hit_ratio = round(1.0 - close_price / last_3_open_price, 4)
-        if hit_ratio > self.decline:
-            return True
+        # data_len = len(current_data)
+        # index = -data_len if data_len < 3 else -3
+        # last_3_open_price = float(current_data[index][BinanceDataFormat.OPEN_PRICE])
+        # hit_ratio = round(1.0 - close_price / last_3_open_price, 4)
+        # if hit_ratio > self.decline:
+        #     return True
         # 否则不补仓
         return False
-    
 
     def buy(self, data):
         # 获取交易币种的精确度信息等
