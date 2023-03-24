@@ -96,12 +96,12 @@ class TradingStraregyTwo(object):
             return True
 
         # 条件2：如果当前价格，较3小时前内的开盘价跌幅达到指定阈值，则买入
-        data_len = len(current_data)
-        index = -data_len if data_len < 3 else -3
-        last_3_open_price = float(current_data[index][BinanceDataFormat.OPEN_PRICE])
-        hit_ratio = round(1.0 - close_price / last_3_open_price, 4)
-        if hit_ratio > self.decline:
-            return True
+        # data_len = len(current_data)
+        # index = -data_len if data_len < 3 else -3
+        # last_3_open_price = float(current_data[index][BinanceDataFormat.OPEN_PRICE])
+        # hit_ratio = round(1.0 - close_price / last_3_open_price, 4)
+        # if hit_ratio > self.decline:
+        #     return True
         # 否则不补仓
         return False
 
