@@ -53,6 +53,13 @@ class TradingStraregyThree(object):
         self.profit_ratio = config.get("profit_ratio", CONST_PROFIT_RATIO)
         self.force_buy = config.get("force_buy", CONST_FORCE_BUY)
 
+    def get_param(self):
+        param = {}
+        return param
+    
+    def set_param(self, param):
+        pass
+
     def is_buy_time(self, datas):
         """
         分析传入的数据，判断是否可以买入。本策略中，通过分析最近时间连续下跌次数来判断是否满足买入条件

@@ -9,6 +9,7 @@
 
 import argparse
 import json
+import numpy as np
 from prettytable import PrettyTable
 from tqdm import tqdm
 from nextbv2.version import NEXTB_V2_VERSION
@@ -94,7 +95,7 @@ def parse_cmd():
     parser.add_argument(
         "-a",
         "--auto",
-        help="指定模拟方式，自动模拟时忽略用户参数、数量参数、数据库名称。[非0：表示自动模拟，0：表示不自动模拟]默认值为：0",
+        help="指定模拟方式，自动模拟时忽略用户参数、数量参数、数据库名称。[2：表示参数遍历模拟，1：表示时间维度的自动模拟，0：表示不自动模拟]默认值为：0",
         type=int,
         dest="auto",
         action="store",
@@ -134,7 +135,7 @@ def get_config(file_name):
         return config
 
 
-def simulation(ts, nb_db, user, symbol, trade_datas):
+def simulation(ts, nb_db, user, symbol, trade_datas, is_print=True):
     data_len = len(trade_datas)
     sell_price = MAX_PRICE
     for i in tqdm(range(0, data_len), unit="row", desc="用户{}模拟中".format(user)):
@@ -197,27 +198,30 @@ def simulation(ts, nb_db, user, symbol, trade_datas):
     for q, c in quote_ratio.items():
         c_ratio = round(c / c_total * 100, 2)
         qc_list.append([q, c, "{}%".format(c_ratio)])
-    x = PrettyTable()
-    x.field_names = ["资金(单位: U)", "使用次数", "使用占比"]
-    x.add_rows(qc_list)
-    print(x)
-    # 输出汇总信息
-    info(
-        "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，利润率: {}%, 当前交易状态: {}".format(
-            timestamp_to_time(trade_datas[0][BinanceDataFormat.OPEN_TIME]),
-            count,
-            total_profit,
-            max_quote,
-            profit_ratio,
-            status_str,
+    if is_print:
+        x = PrettyTable()
+        x.field_names = ["资金(单位: U)", "使用次数", "使用占比"]
+        x.add_rows(qc_list)
+        print(x)
+        # 输出汇总信息
+        info(
+            "开始交易时间：{}，共计交易：{}次，共计获利：{}U，最大投入成本：{}U，利润率: {}%, 当前交易状态: {}".format(
+                timestamp_to_time(trade_datas[0][BinanceDataFormat.OPEN_TIME]),
+                count,
+                total_profit,
+                max_quote,
+                profit_ratio,
+                status_str,
+            )
         )
-    )
     return ",".join(
         [
             user,
             timestamp_to_time(trade_datas[0][BinanceDataFormat.OPEN_TIME]),
             str(count),
             str(total_profit),
+            str(max_quote),
+            str(profit_ratio),
             str(status),
         ]
     )
@@ -236,7 +240,45 @@ def auto_simulation(ts, nb_db, symbol, trade_datas):
             new_trade_datas[0][BinanceDataFormat.CLOSE_PRICE],
         )
         datas.append(data_str)
-    headers = "用户名,交易时间,交易次数,利润值,当前状态,开盘价,收盘价"
+    headers = "用户名,交易时间,交易次数,利润,最大投入成本,利润率,当前状态,开盘价,收盘价"
+    with open("simulation.csv", "w", encoding="utf8") as f:
+        f.write(headers + "\n")
+        f.write("\n".join(datas))
+
+
+def auto_mutli_work(ts, nb_db, symbol, trade_datas, down):
+    init_param = ts.get_param()
+    init_decline = init_param.get("decline", 0.03)
+    init_profit_ratio = init_param.get("profit_ratio", 0.03)
+    datas = list()
+    for j in tqdm(np.arange(0.002, init_decline, 0.002), unit="time", desc="下跌幅度模拟交易中"):
+        for k in tqdm(
+            np.arange(0.001, init_profit_ratio, 0.001), unit="user", desc="收益率模拟交易中"
+        ):
+            j = round(j, 4)
+            k = round(k, 4)
+            param = {"down": down, "decline": j, "profit_ratio": k}
+            ts.set_param(param)
+            user = "nextb_{}_{}_{}".format(down, j, k)
+            data_str = simulation(ts, nb_db, user, symbol, trade_datas, False)
+            data_str += ",{},{},{}".format(down, j, k)
+            datas.append(data_str)
+
+    return datas
+
+
+def auto2_simulation(ts, nb_db, symbol, trade_datas):
+    """
+    不同参数的收益情况模拟
+    """
+    init_param = ts.get_param()
+    init_down = init_param.get("down", 3)
+    datas = list()
+    # 单进程
+    for i in tqdm(range(1, init_down + 1), unit="time", desc="下跌次数模拟交易中"):
+        data = auto_mutli_work(ts, nb_db, symbol, trade_datas, i)
+        datas.extend(data)
+    headers = "用户名,交易时间,交易次数,利润,最大投入成本,利润率,当前状态,下降次数,下跌幅度,利润率阈值"
     with open("simulation.csv", "w", encoding="utf8") as f:
         f.write(headers + "\n")
         f.write("\n".join(datas))
@@ -267,10 +309,14 @@ def trade(param):
     ts = trade_func[trading_straregy](config)
     if number != 0:
         trade_datas = trade_datas[-number:]
-    if auto:
-        auto_simulation(ts, nb_db, symbol, trade_datas)
-    else:
+    if auto == 0:
         simulation(ts, nb_db, user, symbol, trade_datas)
+    elif auto == 1:
+        auto_simulation(ts, nb_db, symbol, trade_datas)
+    elif auto == 2:
+        auto2_simulation(ts, nb_db, symbol, trade_datas)
+    else:
+        print("auto 参数配置错误，程序退出。")
 
 
 def get_trade_one_ts(config):
