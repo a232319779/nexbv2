@@ -129,6 +129,9 @@ class TradeOnline(object):
     def get_binance_data(self):
         klines_interval = self.config.get("klines_interval", "1h")
         limit = self.config.get("limit", 3)
+        down = self.trade_config.get("down", 3)
+        # 保证策略需要的数据是足够的
+        limit = down + 1 if limit <= down else limit
         # 从接口获取数据
         param = {
             "symbol": self.symbol,
@@ -140,7 +143,7 @@ class TradeOnline(object):
         return self.nextb_binance.get_klines(param)
 
     def buy(self):
-        # 获取最近3条交易数据
+        # 获取最近limit条交易数据
         datas = self.get_binance_data()
         if datas is None:
             error("用户：{}查询{}数据失败。".format(self.user, self.symbol))
@@ -206,8 +209,10 @@ class TradeOnline(object):
 
     def buy_again(self, last_trade_one):
         datas = self.get_binance_data()
+        # 动态计算补仓阈值
+        self.trading_straregy.calc_buy_threasold(datas)
         # 判断是否需要买入
-        if self.trading_straregy.is_buy_again(datas[-1], last_trade_one):
+        if self.trading_straregy.is_buy_again(datas, last_trade_one):
             buy_data = self.trading_straregy.buy_again(datas[-1], last_trade_one)
             if buy_data:
                 # 取消当前订单
