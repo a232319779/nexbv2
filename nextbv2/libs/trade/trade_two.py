@@ -94,8 +94,15 @@ class TradingStraregyTwo(object):
         ratio = round(1.0 - close_price / last_buy_price, 4)
         if ratio > self.decline:
             return True
+        
+        open_price = float(current_data[-1][BinanceDataFormat.OPEN_PRICE])
+        one_ratio = round(1.0 - close_price / open_price, 4)
+        # 条件2：如果当前跌幅大于指定阈值，默认是3%，则直接补仓
+        # 跌幅达到指定指标
+        if one_ratio > CONST_DECLINE:
+            return True
 
-        # 条件2：如果当前价格，较3小时前内的开盘价跌幅达到指定阈值，则买入
+        # 条件3：如果当前价格，较3小时前内的开盘价跌幅达到指定阈值，则买入
         # data_len = len(current_data)
         # index = -data_len if data_len < 3 else -3
         # last_3_open_price = float(current_data[index][BinanceDataFormat.OPEN_PRICE])
