@@ -70,5 +70,10 @@ do_setup(
     keywords=[],
     license="MIT",
     include_package_data=True,
-    install_requires=["python-binance==1.0.15", "tqdm==4.62.3", "numpy"],
+    install_requires=[
+        "python-binance==1.0.15",
+        "tqdm==4.62.3",
+        "prettytable==3.6.0",
+        "numpy",
+    ],
 )

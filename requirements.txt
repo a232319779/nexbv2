@@ -1,4 +1,5 @@
 python-binance==1.0.15
 tqdm==4.62.3
+prettytable==3.6.0
 TA-Lib
 numpy
