@@ -72,10 +72,11 @@ class TradingStraregyTwo(object):
         new_price = float(datas[-1][BinanceDataFormat.CLOSE_PRICE])
         old_price = float(datas[-self.down][BinanceDataFormat.OPEN_PRICE])
         ratio = round(1.0 - new_price / old_price, 4)
-        # 跌幅达到指定指标
+        # 买入条件1：跌幅达到指定指标
         if ratio > CONST_DECLINE / 2:
             return True
-        # 连续下跌达到指定次数
+
+        # 买入条件2：连续下跌达到指定次数
         for i in range(-1, -self.down - 1, -1):
             open_price = float(datas[i][BinanceDataFormat.OPEN_PRICE])
             close_price = float(datas[i][BinanceDataFormat.CLOSE_PRICE])
@@ -88,27 +89,32 @@ class TradingStraregyTwo(object):
         """
         分析传入的数据与交易数据跌幅
         """
-        # 条件1：如果当前价格较上一次的买入价格跌幅达到指定阈值，则买入
+        # 补仓条件1：如果当前价格较上一次的买入价格跌幅达到指定阈值，则买入
         last_buy_price = trade_data.buy_price
         close_price = float(current_data[-1][BinanceDataFormat.CLOSE_PRICE])
         ratio = round(1.0 - close_price / last_buy_price, 4)
         if ratio > self.decline:
             return True
-        
+
+        # 补仓条件2：如果最近当前跌幅大于指定阈值，则直接补仓
         open_price = float(current_data[-1][BinanceDataFormat.OPEN_PRICE])
         one_ratio = round(1.0 - close_price / open_price, 4)
-        # 条件2：如果当前跌幅大于指定阈值，默认是3%，则直接补仓
-        # 跌幅达到指定指标
-        if one_ratio > CONST_DECLINE:
+        if one_ratio > self.decline:
             return True
 
-        # 条件3：如果当前价格，较3小时前内的开盘价跌幅达到指定阈值，则买入
-        # data_len = len(current_data)
-        # index = -data_len if data_len < 3 else -3
-        # last_3_open_price = float(current_data[index][BinanceDataFormat.OPEN_PRICE])
-        # hit_ratio = round(1.0 - close_price / last_3_open_price, 4)
-        # if hit_ratio > self.decline:
-        #     return True
+        # 补仓条件3：如果最近2小时跌幅大于指定阈值，则直接补仓
+        open_price2 = float(current_data[-2][BinanceDataFormat.OPEN_PRICE])
+        one_ratio2 = round(1.0 - close_price / open_price2, 4)
+        if one_ratio2 > self.decline * 1.2:
+            return True
+
+        # 补仓条件4：如果当前价格，较3小时前内的开盘价跌幅达到指定阈值，则买入
+        data_len = len(current_data)
+        index = -data_len if data_len < 3 else -3
+        last_3_open_price = float(current_data[index][BinanceDataFormat.OPEN_PRICE])
+        hit_ratio = round(1.0 - close_price / last_3_open_price, 4)
+        if hit_ratio > self.decline * 1.8:
+            return True
         # 否则不补仓
         return False
 
