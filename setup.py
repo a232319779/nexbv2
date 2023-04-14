@@ -59,6 +59,7 @@ do_setup(
             "nextb-v2-trade-simulation = nextbv2.libs.cli.cli_trade_simulation:run",
             "nextb-v2-trade-online = nextbv2.libs.cli.cli_trade_online:run",
             "nextb-v2-trade-profit = nextbv2.libs.cli.cli_trade_profit:run",
+            "nextb-v2-trade-cost = nextbv2.libs.cli.cli_trade_cost:run",
         ],
     },
     classifiers=[
